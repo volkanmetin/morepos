@@ -17,7 +17,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 
 Route::domain(config('app.domain'))->middleware(['auth:sanctum', config('jetstream.auth_session')])->group(function () {
-    Route::get('/', [HomeController::class, 'redirectToTenant'])->name('home');
+    Route::get('/', [HomeController::class, 'redirectToTenant']);
+    //Route::get('/', [HomeController::class, 'redirectToTenant'])->name('home');
     Route::post('select-tenant/{tenantId}', [HomeController::class, 'selectTenant'])->name('select-tenant');
 });
 
