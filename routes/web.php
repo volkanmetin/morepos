@@ -26,7 +26,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
     Route::post('set-locale', [LocaleController::class, 'setLocale'])->name('setLocale');
 
     Route::get('test', function () {
-        $file = storage_path('app/public/toplu.xlsx');
+        $file = storage_path('app/public/toplu2.xlsx');
         DB::beginTransaction();
         try {
             Excel::import(new ProductsImport, $file);

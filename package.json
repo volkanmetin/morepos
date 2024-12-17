@@ -27,6 +27,7 @@
         "datatables.net-bs5": "^2.1.7",
         "datatables.net-vue3": "^3.0.2",
         "gridjs": "^6.2.0",
+        "jsbarcode": "^3.11.6",
         "laravel-vue-i18n": "^2.7.7",
         "sass": "1.77.6",
         "simplebar-vue": "^2.3.5",

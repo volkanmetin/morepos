@@ -53,6 +53,8 @@ class ProductsImport implements ToCollection, WithHeadingRow
                         $row['varyant_deger_'.$index] = 'XSS';
                     } elseif (strtolower($row['varyant_deger_'.$index]) == 'm/l') {
                         $row['varyant_deger_'.$index] = 'ML';
+                    } elseif (strtolower($row['varyant_deger_'.$index]) == 's/m') {
+                        $row['varyant_deger_'.$index] = 'SM';
                     }
 
                     $attrValue = AttributeValue::where('attribute_group_id', $attrGroup->id)
@@ -81,7 +83,7 @@ class ProductsImport implements ToCollection, WithHeadingRow
                 'purchase_price' => $row['variant_alis_fiyati'] ?? 0,
                 'sale_price' => $row['variant_satis_fiyati'] ?? 0,
                 'discounted_price' => $row['variant_indirimli_fiyati'] ?? 0,
-                'stock' => $row['stoktr_istanbul_kahraman'] ?? 0,
+                'stock' => $row['stoktr_istanbul_kahraman'] ?? $row['stokkktc_ana_depo'] ?? 0,
                 'attributes' => $variants,
             ];
         }
@@ -128,9 +130,11 @@ class ProductsImport implements ToCollection, WithHeadingRow
                 $variant->generateBarcode();
                 $variant->save();
 
+                ray($variantData['image']);
+
                 if (isset($variantData['image']) && $variantData['image']) {
                     if (! in_array($variant->id, $photoAddedVariantIds)) {
-                        CopyVariantImageFromRemoteToLocal::dispatch($variantData['image'], $variant->id)->afterCommit();
+                        CopyVariantImageFromRemoteToLocal::dispatch($variantData['image'], $variant->id);
                         $photoAddedVariantIds[] = $variant->id;
                     }
                 }

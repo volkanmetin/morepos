@@ -10,6 +10,7 @@ import { BModal } from 'bootstrap-vue-next';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import Barcode from '@/Components/Barcode.vue';
 
 const variantColumns = [
     {
@@ -432,6 +433,18 @@ const filteredVariants = computed(() => {
                                         {{ stock.warehouse?.name || '-' }}: 
                                         {{ stock.quantity }}
                                     </span>
+                                </div>
+                            </template>
+
+                            <template #cell(barcode)="row">
+                                <div class="">
+                                    <span class="mb-1">{{ row.item.barcode || '-' }}</span><br />
+                                    <Barcode 
+                                        :value="row.item.barcode"
+                                        :width="120"
+                                        :height="30"
+                                        format="CODE128"
+                                    />
                                 </div>
                             </template>
 

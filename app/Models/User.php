@@ -10,37 +10,19 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
-
-class User extends Authenticatable // implements MustVerifyEmail
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+class User extends Authenticatable implements FilamentUser // implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    protected $guarded = [];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -52,5 +34,14 @@ class User extends Authenticatable // implements MustVerifyEmail
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(Tenant::class);
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        if(app()->isLocal()) {
+            return true;
+        }
+
+        return str_ends_with($this->email, '@yourdomain.com') && $this->hasVerifiedEmail();
     }
 }
