@@ -16,7 +16,7 @@ class StarterSeeder extends Seeder
 
         $tenant = $action->execute([
             'name' => 'More TEST',
-            'domain' => 'more-test.morepos.test',
+            'domain' => 'more-test.' . config('app.domain'),
             'database' => 'more-test',
             'user' => 'Admin TEST',
             'email' => 'test@test.com',

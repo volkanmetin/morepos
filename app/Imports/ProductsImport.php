@@ -134,7 +134,7 @@ class ProductsImport implements ToCollection, WithHeadingRow
 
                 if (isset($variantData['image']) && $variantData['image']) {
                     if (! in_array($variant->id, $photoAddedVariantIds)) {
-                        CopyVariantImageFromRemoteToLocal::dispatch($variantData['image'], $variant->id);
+                        CopyVariantImageFromRemoteToLocal::dispatch($variantData['image'], $variant->id)->afterCommit();
                         $photoAddedVariantIds[] = $variant->id;
                     }
                 }

@@ -15,7 +15,7 @@ use App\Imports\ProductsImport;
 use Illuminate\Support\Facades\Route;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
-
+use App\Http\Controllers\SearchController;
 Route::domain(config('app.domain'))->middleware(['auth:sanctum', config('jetstream.auth_session')])->group(function () {
     Route::get('/', [HomeController::class, 'redirectToTenant']);
     //Route::get('/', [HomeController::class, 'redirectToTenant'])->name('home');
@@ -25,6 +25,7 @@ Route::domain(config('app.domain'))->middleware(['auth:sanctum', config('jetstre
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
     Route::post('set-locale', [LocaleController::class, 'setLocale'])->name('setLocale');
+    Route::get('search', [SearchController::class, 'search'])->name('search');
 
     Route::get('test', function () {
         $file = storage_path('app/public/toplu2.xlsx');
@@ -36,6 +37,64 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
             DB::rollBack();
             dd($e->getMessage());
         }
+    });
+
+    Route::get('ikas', function () {
+
+        /*
+        $response = Http::post('https://morekibris.myikas.com/api/admin/oauth/token', [
+            'grant_type' => 'client_credentials',
+            'client_id' => '1352f158-cde0-4670-8576-d9d34b28537d',
+            'client_secret' => 's_D9zdDN7LUGysSNdcwDxTCaxh2e40d72b4a674decaf15d26b93455226',
+        ]);
+        $token = $response->json()['access_token'];
+        ray($response->json());
+        */
+
+        $token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEzNTJmMTU4LWNkZTAtNDY3MC04NTc2LWQ5ZDM0YjI4NTM3ZCIsImVtYWlsIjoibW9yZXBvcyIsImZpcnN0TmFtZSI6Im1vcmVwb3MiLCJsYXN0TmFtZSI6IiIsInN0b3JlTmFtZSI6Im1vcmVraWJyaXMiLCJtZXJjaGFudElkIjoiMWI1NWM4YTEtZmZhYi00MjU5LTg1YmMtYWY5MTgxZDI3ZDMyIiwiZmVhdHVyZXMiOlsxMCwxMSwxMiwyLDIwMSwzLDQsNSw3LDgsOV0sImF1dGhvcml6ZWRBcHBJZCI6IjEzNTJmMTU4LWNkZTAtNDY3MC04NTc2LWQ5ZDM0YjI4NTM3ZCIsInR5cGUiOjQsImV4cCI6MTczNDgzMTYwODU4NywiaWF0IjoxNzM0ODE3MjA4NTg3LCJpc3MiOiIxYjU1YzhhMS1mZmFiLTQyNTktODViYy1hZjkxODFkMjdkMzIiLCJzdWIiOiIxMzUyZjE1OC1jZGUwLTQ2NzAtODU3Ni1kOWQzNGIyODUzN2QifQ.49XrV735NllTfcTENCPYdeXJkAibeVKcr-awO8-WW6k';
+
+        $response = Http::withToken($token)
+            ->post('https://api.myikas.com/api/v1/admin/graphql', [
+                'query' => 'query {
+                    listProduct(id: {eq: "4c3e7ee0-457e-4efa-9578-b407240cba32"}) {
+                        count
+                        data {
+                            id
+                            name
+                            createdAt
+                            totalStock
+                            variants {
+                                id
+                                sku
+                                barcodeList
+                                images {
+                                    imageId
+                                    fileName
+                                    isMain
+                                    order
+                                }
+                                prices {
+                                    currency
+                                    buyPrice
+                                    sellPrice
+                                    discountPrice
+                                }
+                                stocks {
+                                    id
+                                    variantId
+                                    stockLocationId
+                                    stockCount
+                                }
+                            }
+                        }
+                    }
+                }'
+            ])
+            ->json();
+
+        return $response;
+        dd($response);
+
     });
 
     Route::prefix('pos')->as('pos.')->group(function () {
@@ -127,3 +186,5 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
 
 Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
 Route::get('/pos/products', [PosController::class, 'getProducts'])->name('pos.products');
+
+Route::get('/search', [SearchController::class, 'search'])->name('search');

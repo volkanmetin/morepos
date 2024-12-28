@@ -5,9 +5,8 @@ namespace App\Jobs;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use App\Models\ProductVariant;
-use Illuminate\Queue\AfterCommit;
 
-class CopyVariantImageFromRemoteToLocal implements ShouldQueue, AfterCommit
+class CopyVariantImageFromRemoteToLocal implements ShouldQueue
 {
     use Queueable;
 
