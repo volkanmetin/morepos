@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SaleController;
 Route::domain(config('app.domain'))->middleware(['auth:sanctum', config('jetstream.auth_session')])->group(function () {
     Route::get('/', [HomeController::class, 'redirectToTenant']);
     //Route::get('/', [HomeController::class, 'redirectToTenant'])->name('home');
@@ -97,11 +98,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
 
     });
 
-    Route::prefix('pos')->as('pos.')->group(function () {
+    Route::prefix('pos')->name('pos.')->group(function () {
         Route::get('/', [PosController::class, 'index'])->name('index');
-        Route::get('products', [PosController::class, 'getProducts'])->name('products');
-        Route::post('order', [PosController::class, 'order'])->name('order');
-        Route::post('apply-coupon', [PosController::class, 'applyCoupon'])->name('apply-coupon');
+        Route::get('/search-customers', [PosController::class, 'searchCustomers'])->name('search-customers');
+        Route::post('/customers', [PosController::class, 'createCustomer'])->name('create-customer');
+        Route::get('/sale/{customerId}', [PosController::class, 'pos'])->name('sale');
     });
 
     // Vendors
@@ -182,6 +183,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
 
     //Route::get('products', [\App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
     //Route::get('/products/{product}', [ProductController::class, 'show'])->name('product.show');
+
+    // Sales Routes
+    Route::resource('sales', SaleController::class)->only(['index', 'store', 'show']);
 });
 
 Route::get('/pos', [PosController::class, 'index'])->name('pos.index');

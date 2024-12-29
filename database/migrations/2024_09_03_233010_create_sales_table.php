@@ -6,28 +6,33 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('customer_id');
-            $table->decimal('total_amount', 10, 2);
-            $table->date('sale_date');
-            $table->enum('status', ['pending', 'completed', 'cancelled'])->default('pending');
+            $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
+            $table->foreignId('customer_id')->constrained()->onDelete('restrict');
+            $table->decimal('subtotal', 10, 2);
+            $table->decimal('tax_amount', 10, 2);
+            $table->decimal('total', 10, 2);
             $table->timestamps();
+        });
 
-            $table->foreign('customer_id')->references('id')->on('customers');
+        Schema::create('sale_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('sale_id')->constrained()->onDelete('cascade');
+            $table->foreignId('product_id')->constrained()->onDelete('restrict');
+            $table->foreignId('product_variant_id')->nullable()->constrained()->onDelete('restrict');
+            $table->integer('quantity');
+            $table->decimal('price', 10, 2);
+            $table->decimal('total', 10, 2);
+            $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
+        Schema::dropIfExists('sale_items');
         Schema::dropIfExists('sales');
     }
-};
+}; 

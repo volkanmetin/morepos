@@ -2,74 +2,52 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\ProductResource;
-use App\Models\Brand;
-use App\Models\Category;
-use App\Models\Product;
-use App\Models\Vendor;
+use App\Models\Customer;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class PosController extends Controller
 {
     public function index()
     {
-        return inertia('Pos/Index');
+        return Inertia::render('Pos/CustomerSearch');
     }
 
-    public function getProducts(Request $request)
+    public function searchCustomers(Request $request)
     {
-        $query = Product::query();
+        $query = $request->get('query');
+        
+        $customers = Customer::where('name', 'LIKE', "%{$query}%")
+            ->orWhere('phone', 'LIKE', "%{$query}%")
+            ->take(10)
+            ->get();
 
-        if ($request->has('search')) {
-            $searchTerm = $request->input('search');
-            $query->where('name', 'like', "%{$searchTerm}%")
-                ->orWhere('description', 'like', "%{$searchTerm}%");
-        }
+        return response()->json($customers);
+    }
 
-        if ($request->has('category') && $request->input('category') !== '') {
-            $query->where('category_id', $request->input('category'));
-        }
-
-        if ($request->has('vendor') && $request->input('vendor') !== '') {
-            $query->where('vendor_id', $request->input('vendor'));
-        }
-
-        if ($request->has('brand') && $request->input('brand') !== '') {
-            $query->where('brand_id', $request->input('brand'));
-        }
-
-        $query->with([
-            'variants.attributeValues.attributeGroup' => function ($query) {
-                $query->select('id', 'name');
-            },
-            'variants.stocks' => function ($query) {
-                $query->select('id', 'product_variant_id', 'quantity', 'warehouse_id')
-                    ->with('warehouse:id,name');
-            },
+    public function createCustomer(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:500',
         ]);
 
-        $products = $query->paginate(20);
-
+        $customer = Customer::create($validated);
+        
         return response()->json([
-            'data' => ProductResource::collection($products),
-            'categories' => Category::all()->map(function ($category) {
-                return [
-                    'value' => $category->id,
-                    'label' => $category->name,
-                ];
-            }),
-            'vendors' => Vendor::all()->map(function ($vendor) {
-                return [
-                    'value' => $vendor->id,
-                    'label' => $vendor->name,
-                ];
-            }),
-            'brands' => Brand::all()->map(function ($brand) {
-                return [
-                    'value' => $brand->id,
-                    'label' => $brand->name,
-                ];
-            }),
+            'success' => true,
+            'customer' => $customer
+        ]);
+    }
+
+    public function pos($customerId)
+    {
+        $customer = Customer::findOrFail($customerId);
+        
+        return Inertia::render('Pos/Sale', [
+            'customer' => $customer
         ]);
     }
 }
