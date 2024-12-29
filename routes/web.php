@@ -119,6 +119,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
     Route::prefix('products')->as('product.')->group(function () {
         Route::get('/', [ProductController::class, 'index'])->name('index');
         Route::get('data', [ProductController::class, 'getData'])->name('data');
+        Route::get('search', [SearchController::class, 'products'])->name('search');
         Route::get('create', [ProductController::class, 'create'])->name('create');
         Route::post('create', [ProductController::class, 'store']);
         Route::post('upload-image', [ProductController::class, 'uploadImage'])->name('upload-image');
@@ -184,14 +185,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
     //Route::get('products', [\App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
     //Route::get('/products/{product}', [ProductController::class, 'show'])->name('product.show');
 
-    // Products Search Route
-    Route::get('/products/search', [SearchController::class, 'products'])->name('products.search');
-
     // Sales Routes
     Route::resource('sales', SaleController::class)->only(['index', 'store', 'show']);
 });
 
-Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
-Route::get('/pos/products', [PosController::class, 'getProducts'])->name('pos.products');
+//Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
+//Route::get('/pos/products', [PosController::class, 'getProducts'])->name('pos.products');
 
-Route::get('/search', [SearchController::class, 'search'])->name('search');
+//Route::get('/search', [SearchController::class, 'search'])->name('search');

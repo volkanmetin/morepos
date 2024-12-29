@@ -11,6 +11,7 @@ class SearchController extends Controller
 {
     public function products(Request $request)
     {
+        ray($request->all());
         $query = Product::query()
             ->with(['variants.attributeValues.attributeGroup', 'variants.stocks.warehouse']);
 

@@ -272,7 +272,7 @@ const variantFields = [
 const fetchProducts = async () => {
     isLoading.value = true
     try {
-        const response = await axios.get(route('products.search'), {
+        const response = await axios.get(route('product.search'), {
             params: {
                 query: searchQuery.value,
                 category: selectedCategory.value,
