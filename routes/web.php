@@ -184,6 +184,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
     //Route::get('products', [\App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
     //Route::get('/products/{product}', [ProductController::class, 'show'])->name('product.show');
 
+    // Products Search Route
+    Route::get('/products/search', [SearchController::class, 'products'])->name('products.search');
+
     // Sales Routes
     Route::resource('sales', SaleController::class)->only(['index', 'store', 'show']);
 });

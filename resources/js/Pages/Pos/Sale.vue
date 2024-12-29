@@ -279,7 +279,11 @@ const fetchProducts = async () => {
                 brand: selectedBrand.value
             }
         })
-        products.value = response.data.data
+        products.value = response.data.data.map(product => ({
+            ...product,
+            sale_price: product.variants?.[0]?.prices?.[0]?.sellPrice || 0,
+            discounted_price: product.variants?.[0]?.prices?.[0]?.discountPrice || 0,
+        }))
         
         // Kategori ve marka seçeneklerini güncelle
         if (response.data.categories) {
