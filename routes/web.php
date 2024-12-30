@@ -103,6 +103,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
         Route::get('/search-customers', [PosController::class, 'searchCustomers'])->name('search-customers');
         Route::post('/customers', [PosController::class, 'createCustomer'])->name('create-customer');
         Route::get('/sale/{customerId}', [PosController::class, 'pos'])->name('sale');
+        Route::post('/check-coupon', [PosController::class, 'checkCoupon'])->name('check-coupon');
     });
 
     // Vendors

@@ -144,17 +144,95 @@
                             </div>
                         </div>
 
+                        <hr v-if="cartItems.length > 0">
+
+                        <!-- Ödeme Yöntemi -->
+                        <div class="payment-method mb-3" v-if="cartItems.length > 0">
+                            <h6 class="mb-2">Ödeme Yöntemi</h6>
+                            <BFormSelect
+                                v-model="selectedPaymentMethod"
+                                :options="paymentMethods"
+                            />
+                        </div>
+
+                        <!-- Kupon Kodu -->
+                        <div class="coupon-code mb-3" v-if="cartItems.length > 0">
+                            <h6 class="mb-2">Kupon Kodu</h6>
+                            <BInputGroup>
+                                <BFormInput
+                                    v-model="couponCode"
+                                    placeholder="Kupon kodu girin"
+                                />
+                                <BButton
+                                    variant="primary"
+                                    @click="applyCoupon"
+                                    :disabled="!couponCode"
+                                >
+                                    Uygula
+                                </BButton>
+                            </BInputGroup>
+                            <div v-if="couponError" class="text-danger small mt-1">
+                                {{ couponError }}
+                            </div>
+                            <div v-if="appliedCoupon" class="text-success small mt-1">
+                                Kupon uygulandı: {{ appliedCoupon.code }} ({{ appliedCoupon.discount_type === 'percentage' ? '%' + appliedCoupon.amount : formatPrice(appliedCoupon.amount) }})
+                            </div>
+                        </div>
+
+                        <!-- Manuel İndirim -->
+                        <div class="manual-discount mb-3" v-if="cartItems.length > 0">
+                            <h6 class="mb-2">İndirim Uygula</h6>
+                            <div class="d-flex gap-2">
+                                <BFormSelect
+                                    v-model="discountType"
+                                    :options="discountTypes"
+                                    style="width: 150px"
+                                />
+                                <BFormInput
+                                    v-model.number="discountAmount"
+                                    type="number"
+                                    min="0"
+                                    :max="discountType === 'percentage' ? 100 : subtotal"
+                                    placeholder="Değer"
+                                />
+                                <BButton
+                                    variant="primary"
+                                    @click="applyDiscount"
+                                    :disabled="!discountAmount"
+                                >
+                                    Uygula
+                                </BButton>
+                            </div>
+                        </div>
+
                         <hr>
 
+                        <!-- Özet -->
                         <div class="cart-summary">
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Ara Toplam:</span>
                                 <span>{{ formatPrice(subtotal) }}</span>
                             </div>
+                            
+                            <template v-if="appliedCoupon">
+                                <div class="d-flex justify-content-between mb-2 text-success">
+                                    <span>Kupon İndirimi:</span>
+                                    <span>-{{ formatPrice(couponDiscountAmount) }}</span>
+                                </div>
+                            </template>
+
+                            <template v-if="manualDiscount">
+                                <div class="d-flex justify-content-between mb-2 text-success">
+                                    <span>Manuel İndirim:</span>
+                                    <span>-{{ formatPrice(manualDiscountAmount) }}</span>
+                                </div>
+                            </template>
+
                             <div class="d-flex justify-content-between mb-2">
                                 <span>KDV ({{ taxRate }}%):</span>
                                 <span>{{ formatPrice(taxAmount) }}</span>
                             </div>
+
                             <div class="d-flex justify-content-between fw-bold">
                                 <span>Toplam:</span>
                                 <span>{{ formatPrice(total) }}</span>
@@ -235,7 +313,9 @@ import {
     BButton,
     BSpinner,
     BModal,
-    BTable
+    BTable,
+    BFormSelect,
+    BInputGroup
 } from 'bootstrap-vue-next'
 import axios from 'axios'
 
@@ -276,6 +356,28 @@ const variantFields = [
     { key: 'price', label: 'Fiyat' },
     { key: 'stock', label: 'Stok' },
     { key: 'actions', label: 'İşlem' }
+]
+
+// Ödeme yöntemi
+const selectedPaymentMethod = ref('cash')
+const paymentMethods = [
+    { value: 'cash', text: 'Nakit' },
+    { value: 'pos1', text: 'Kredi Kartı - POS 1' },
+    { value: 'pos2', text: 'Kredi Kartı - POS 2' },
+]
+
+// Kupon kodu
+const couponCode = ref('')
+const couponError = ref('')
+const appliedCoupon = ref(null)
+
+// İndirim
+const discountType = ref('percentage')
+const discountAmount = ref(null)
+const manualDiscount = ref(null)
+const discountTypes = [
+    { value: 'percentage', text: 'Yüzde (%)' },
+    { value: 'fixed', text: 'Sabit Tutar' },
 ]
 
 // Ürünleri getir
@@ -386,12 +488,16 @@ const subtotal = computed(() => {
     return cartItems.value.reduce((sum, item) => sum + item.total, 0)
 })
 
+const discountedSubtotal = computed(() => {
+    return subtotal.value - couponDiscountAmount.value - manualDiscountAmount.value
+})
+
 const taxAmount = computed(() => {
-    return (subtotal.value * taxRate) / 100
+    return (discountedSubtotal.value * taxRate) / 100
 })
 
 const total = computed(() => {
-    return subtotal.value + taxAmount.value
+    return discountedSubtotal.value + taxAmount.value
 })
 
 // Yardımcı fonksiyonlar
@@ -430,7 +536,53 @@ const handleBrandChange = (value) => {
     fetchProducts()
 }
 
-// Satışı tamamla
+// Kupon uygulama
+const applyCoupon = async () => {
+    try {
+        const response = await axios.post(route('pos.check-coupon'), {
+            code: couponCode.value
+        })
+        
+        if (response.data.success) {
+            appliedCoupon.value = response.data.coupon
+            couponError.value = ''
+            couponCode.value = ''
+        }
+    } catch (error) {
+        couponError.value = error.response?.data?.message || 'Kupon kodu geçersiz'
+        appliedCoupon.value = null
+    }
+}
+
+// Manuel indirim uygulama
+const applyDiscount = () => {
+    if (discountAmount.value > 0) {
+        manualDiscount.value = {
+            type: discountType.value,
+            amount: discountAmount.value
+        }
+        discountAmount.value = null
+    }
+}
+
+// İndirim hesaplamaları
+const couponDiscountAmount = computed(() => {
+    if (!appliedCoupon.value) return 0
+    
+    return appliedCoupon.value.discount_type === 'percentage'
+        ? (subtotal.value * appliedCoupon.value.amount) / 100
+        : appliedCoupon.value.amount
+})
+
+const manualDiscountAmount = computed(() => {
+    if (!manualDiscount.value) return 0
+    
+    return manualDiscount.value.type === 'percentage'
+        ? (subtotal.value * manualDiscount.value.amount) / 100
+        : manualDiscount.value.amount
+})
+
+// Satış tamamlama fonksiyonunu güncelle
 const completeSale = async () => {
     try {
         const saleData = {
@@ -441,7 +593,11 @@ const completeSale = async () => {
                 quantity: item.quantity,
                 price: item.price
             })),
+            payment_method: selectedPaymentMethod.value,
+            coupon_id: appliedCoupon.value?.id,
+            manual_discount: manualDiscount.value,
             subtotal: subtotal.value,
+            discount_amount: couponDiscountAmount.value + manualDiscountAmount.value,
             tax_amount: taxAmount.value,
             total: total.value
         }

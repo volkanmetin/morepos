@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Coupon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -52,5 +53,40 @@ class PosController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('pos.index')->with('error', 'Customer not found');
         }
+    }
+
+    public function checkCoupon(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string'
+        ]);
+
+        $coupon = Coupon::where('code', $request->code)
+            ->where('status', 'active')
+            ->where('start_date', '<=', now())
+            ->where(function ($query) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now());
+            })
+            ->first();
+
+        if (!$coupon) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Geçersiz kupon kodu'
+            ], 404);
+        }
+
+        if ($coupon->usage_limit && $coupon->usage_count >= $coupon->usage_limit) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kupon kullanım limiti dolmuş'
+            ], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'coupon' => $coupon
+        ]);
     }
 }
