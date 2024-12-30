@@ -263,7 +263,7 @@
                             </template>
 
                             <div class="d-flex justify-content-between mb-2">
-                                <span>KDV ({{ taxRate }}%):</span>
+                                <span>KDV ({{ props.taxRate }}%):</span>
                                 <span>{{ formatPrice(taxAmount) }}</span>
                             </div>
 
@@ -357,6 +357,11 @@ const props = defineProps({
     customer: {
         type: Object,
         required: true
+    },
+    taxRate: {
+        type: Number,
+        required: true,
+        default: 18
     }
 })
 
@@ -382,7 +387,6 @@ const selectedProduct = ref(null)
 
 // Sepet
 const cartItems = ref([])
-const taxRate = 18 // KDV oranı
 
 // Varyant tablosu için sütunlar
 const variantFields = [
@@ -539,7 +543,7 @@ const discountedSubtotal = computed(() => {
 })
 
 const taxAmount = computed(() => {
-    return (discountedSubtotal.value * taxRate) / 100
+    return (discountedSubtotal.value * props.taxRate) / 100
 })
 
 const total = computed(() => {
@@ -745,8 +749,7 @@ onMounted(fetchProducts)
 
 .payment-label.active {
     border-color: var(--bs-primary);
-    background-color: #0d6efd;
+    background-color: #56499f;
     color: white;
-    font-weight: bold;
 }
 </style> 

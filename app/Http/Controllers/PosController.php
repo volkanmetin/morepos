@@ -4,16 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Services\CouponService;
+use App\Services\SettingService;
+use App\Enums\SettingKey;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class PosController extends Controller
 {
     protected $couponService;
+    protected $settingService;
 
-    public function __construct(CouponService $couponService)
+    public function __construct(CouponService $couponService, SettingService $settingService)
     {
         $this->couponService = $couponService;
+        $this->settingService = $settingService;
     }
 
     public function index()
@@ -54,8 +58,11 @@ class PosController extends Controller
     {
         try {
             $customer = Customer::findOrFail($customerId);
+            $taxRate = $this->settingService->get(SettingKey::TAX_RATE->value, 10);
+
             return Inertia::render('Pos/Sale', [
-                'customer' => $customer
+                'customer' => $customer,
+                'taxRate' => (float) $taxRate,
             ]);
         } catch (\Exception $e) {
             return redirect()->route('pos.index')->with('error', 'Customer not found');
