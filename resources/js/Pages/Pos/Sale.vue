@@ -154,10 +154,29 @@
                         <!-- Ödeme Yöntemi -->
                         <div class="payment-method mb-3" v-if="cartItems.length > 0">
                             <h6 class="mb-2">Ödeme Yöntemi</h6>
-                            <BFormSelect
-                                v-model="selectedPaymentMethod"
-                                :options="paymentMethods"
-                            />
+                            <div class="payment-options d-flex gap-2">
+                                <div
+                                    v-for="method in paymentMethods"
+                                    :key="method.value"
+                                    class="payment-option flex-1"
+                                >
+                                    <input
+                                        type="radio"
+                                        :id="method.value"
+                                        v-model="selectedPaymentMethod"
+                                        :value="method.value"
+                                        class="d-none"
+                                    >
+                                    <label
+                                        :for="method.value"
+                                        class="payment-label w-100 text-center p-2 rounded border"
+                                        :class="{ 'active': selectedPaymentMethod === method.value }"
+                                    >
+                                        <i :class="method.icon" class="fs-4 d-block mb-1"></i>
+                                        {{ method.text }}
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Kupon Kodu -->
@@ -376,9 +395,9 @@ const variantFields = [
 // Ödeme yöntemi
 const selectedPaymentMethod = ref('cash')
 const paymentMethods = [
-    { value: 'cash', text: 'Nakit' },
-    { value: 'pos1', text: 'Kredi Kartı - POS 1' },
-    { value: 'pos2', text: 'Kredi Kartı - POS 2' },
+    { value: 'cash', text: 'NAKİT', icon: 'ri-money-dollar-circle-line' },
+    { value: 'pos1', text: 'POS 1', icon: 'ri-bank-card-line' },
+    { value: 'pos2', text: 'POS 2', icon: 'ri-bank-card-2-line' },
 ]
 
 // Kupon kodu
@@ -706,5 +725,28 @@ onMounted(fetchProducts)
     background-color: #f8f9fa;
     padding: 1rem;
     border-radius: 0.375rem;
+}
+
+.payment-option {
+    flex: 1;
+}
+
+.payment-label {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid #dee2e6;
+    background-color: white;
+}
+
+.payment-label:hover {
+    border-color: var(--bs-primary);
+    background-color: #f8f9fa;
+}
+
+.payment-label.active {
+    border-color: var(--bs-primary);
+    background-color: #0d6efd;
+    color: white;
+    font-weight: bold;
 }
 </style> 
