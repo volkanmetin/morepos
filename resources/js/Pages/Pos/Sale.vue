@@ -558,16 +558,21 @@ const applyCoupon = async () => {
     try {
         const response = await axios.post(route('pos.check-coupon'), {
             code: couponCode.value
-        })
+        });
         
         if (response.data.success) {
-            appliedCoupon.value = response.data.coupon
-            couponError.value = ''
-            couponCode.value = ''
+            appliedCoupon.value = response.data.coupon;
+            couponError.value = '';
+            couponCode.value = '';
+        } else {
+            // Başarısız yanıt durumunda
+            couponError.value = response.data.message;
+            appliedCoupon.value = null;
         }
     } catch (error) {
-        couponError.value = error.response?.data?.message || 'Kupon kodu geçersiz'
-        appliedCoupon.value = null
+        // HTTP hatası durumunda (404, 400 vb.)
+        couponError.value = error.response?.data?.message || 'Kupon kodu geçersiz';
+        appliedCoupon.value = null;
     }
 }
 

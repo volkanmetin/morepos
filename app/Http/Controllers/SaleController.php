@@ -4,12 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Coupon;
+use App\Services\CouponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class SaleController extends Controller
 {
+    protected $couponService;
+
+    public function __construct(CouponService $couponService)
+    {
+        $this->couponService = $couponService;
+    }
+
     public function index()
     {
         $sales = Sale::with(['customer', 'items.product', 'items.variant'])
@@ -30,7 +39,11 @@ class SaleController extends Controller
             'items.*.variant_id' => 'nullable|exists:product_variants,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
+            'payment_method' => 'required|string',
+            'coupon_id' => 'nullable|exists:coupons,id',
+            'manual_discount' => 'nullable|array',
             'subtotal' => 'required|numeric|min:0',
+            'discount_amount' => 'required|numeric|min:0',
             'tax_amount' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
         ]);
@@ -40,7 +53,11 @@ class SaleController extends Controller
 
             $sale = Sale::create([
                 'customer_id' => $validated['customer_id'],
+                'payment_method' => $validated['payment_method'],
+                'coupon_id' => $validated['coupon_id'],
+                'manual_discount' => $validated['manual_discount'],
                 'subtotal' => $validated['subtotal'],
+                'discount_amount' => $validated['discount_amount'],
                 'tax_amount' => $validated['tax_amount'],
                 'total' => $validated['total'],
             ]);
@@ -54,6 +71,13 @@ class SaleController extends Controller
                     'price' => $item['price'],
                     'total' => $item['price'] * $item['quantity'],
                 ]);
+            }
+
+            if ($validated['coupon_id']) {
+                $coupon = Coupon::find($validated['coupon_id']);
+                if ($coupon) {
+                    $this->couponService->markAsUsed($coupon);
+                }
             }
 
             DB::commit();

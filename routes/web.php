@@ -17,6 +17,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SaleController;
+use App\Services\CouponService;
+
 Route::domain(config('app.domain'))->middleware(['auth:sanctum', config('jetstream.auth_session')])->group(function () {
     Route::get('/', [HomeController::class, 'redirectToTenant']);
     //Route::get('/', [HomeController::class, 'redirectToTenant'])->name('home');
@@ -38,6 +40,21 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
             DB::rollBack();
             dd($e->getMessage());
         }
+    });
+
+    Route::get('kupon', function () {
+        
+        $couponService = new CouponService();
+        $coupon = $couponService->create([
+            'code' => 'SUMMER2024',
+            'discount_type' => 'percentage',
+            'amount' => 20,
+            'start_date' => now(),
+            'end_date' => now()->addMonths(3),
+            'usage_limit' => 100
+        ]);
+        return $coupon;
+
     });
 
     Route::get('ikas', function () {

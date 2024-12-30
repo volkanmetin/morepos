@@ -3,12 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Models\Coupon;
+use App\Services\CouponService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class PosController extends Controller
 {
+    protected $couponService;
+
+    public function __construct(CouponService $couponService)
+    {
+        $this->couponService = $couponService;
+    }
+
     public function index()
     {
         return Inertia::render('Pos/CustomerSearch');
@@ -61,32 +68,12 @@ class PosController extends Controller
             'code' => 'required|string'
         ]);
 
-        $coupon = Coupon::where('code', $request->code)
-            ->where('status', 'active')
-            ->where('start_date', '<=', now())
-            ->where(function ($query) {
-                $query->whereNull('end_date')
-                    ->orWhere('end_date', '>=', now());
-            })
-            ->first();
+        $result = $this->couponService->check($request->code);
 
-        if (!$coupon) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Geçersiz kupon kodu'
-            ], 404);
+        if (!$result['success']) {
+            return response()->json($result, 400);
         }
 
-        if ($coupon->usage_limit && $coupon->usage_count >= $coupon->usage_limit) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Kupon kullanım limiti dolmuş'
-            ], 400);
-        }
-
-        return response()->json([
-            'success' => true,
-            'coupon' => $coupon
-        ]);
+        return response()->json($result);
     }
 }
