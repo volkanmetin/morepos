@@ -115,6 +115,7 @@
                                                     variant="outline-secondary"
                                                     size="sm"
                                                     @click="decreaseQuantity(index)"
+                                                    :disabled="item.quantity <= 1"
                                                 >
                                                     -
                                                 </BButton>
@@ -123,9 +124,13 @@
                                                     variant="outline-secondary"
                                                     size="sm"
                                                     @click="increaseQuantity(index)"
+                                                    :disabled="item.quantity >= item.max_stock"
                                                 >
                                                     +
                                                 </BButton>
+                                            </div>
+                                            <div class="small text-muted mt-1">
+                                                Stok: {{ item.quantity }}/{{ item.max_stock }}
                                             </div>
                                         </div>
                                         <div class="text-end">
@@ -433,6 +438,10 @@ const addToCart = (product) => {
         selectedProduct.value = product
         showVariantModal.value = true
     } else {
+        // Ana ürün için stok kontrolü
+        if (getCartItemQuantity(product.id) >= product.stock) {
+            return
+        }
         addItemToCart(product)
     }
 }
@@ -444,7 +453,8 @@ const addItemToCart = (product, variant = null) => {
         price: variant?.price || product.price,
         quantity: 1,
         product_id: product.id,
-        variant_id: variant?.id
+        variant_id: variant?.id,
+        max_stock: variant ? getTotalStock(variant) : product.stock
     }
     
     const existingIndex = cartItems.value.findIndex(i => 
@@ -452,6 +462,10 @@ const addItemToCart = (product, variant = null) => {
     )
     
     if (existingIndex > -1) {
+        // Stok kontrolü
+        if (cartItems.value[existingIndex].quantity >= cartItems.value[existingIndex].max_stock) {
+            return
+        }
         cartItems.value[existingIndex].quantity++
         updateItemTotal(existingIndex)
     } else {
@@ -467,8 +481,11 @@ const removeFromCart = (index) => {
 }
 
 const increaseQuantity = (index) => {
-    cartItems.value[index].quantity++
-    updateItemTotal(index)
+    const item = cartItems.value[index]
+    if (item.quantity < item.max_stock) {
+        item.quantity++
+        updateItemTotal(index)
+    }
 }
 
 const decreaseQuantity = (index) => {
@@ -607,6 +624,14 @@ const completeSale = async () => {
     } catch (error) {
         console.error('Satış tamamlanırken hata oluştu:', error)
     }
+}
+
+// Sepetteki ürün miktarını hesapla
+const getCartItemQuantity = (productId, variantId = null) => {
+    const item = cartItems.value.find(i => 
+        i.product_id === productId && i.variant_id === variantId
+    )
+    return item ? item.quantity : 0
 }
 
 // Sayfa yüklendiğinde ürünleri getir
