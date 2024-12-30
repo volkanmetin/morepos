@@ -46,15 +46,25 @@
                                     <div class="product-image-container" @click="openImageModal(product)">
                                         <img :src="product.image" :alt="product.name" class="product-image img-fluid mb-2 cursor-pointer">
                                     </div>
-                                    <h3 class="product-name mt-2">{{ product.name }}</h3>
-                                    <div v-if="product.discounted_price" class="price-info">
+                                    <h3 class="product-name mt-2">
+                                        <a :href="route('product.show', product.id)" target="_blank">{{ product.name }}</a>
+                                    </h3>
+                                    <div v-if="product.discounted_price && product.discounted_price > 0" class="price-info">
                                         <span class="text-decoration-line-through text-muted">{{ formatPrice(product.sale_price) }}</span><br />
                                         <span class="fw-semibold">{{ formatPrice(product.discounted_price) }}</span>
                                     </div>
                                     <div v-else class="price-info">
                                         <span class="fw-semibold">{{ formatPrice(product.sale_price) }}</span>
                                     </div>
-                                    <BButton variant="primary" class="btn-sm mt-2" @click="addToCart(product)">
+                                    <div :class="{'text-danger': product.stock <= 0, 'text-muted': product.stock > 0}" class="small">
+                                        Stok: {{ product.stock }}
+                                    </div>
+                                    <BButton 
+                                        variant="primary" 
+                                        class="btn-sm mt-2" 
+                                        @click="addToCart(product)"
+                                        :disabled="product.stock <= 0"
+                                    >
                                         Sepete Ekle
                                     </BButton>
                                 </div>
@@ -190,7 +200,7 @@
                     {{ formatVariantName(data.item) }}
                 </template>
                 <template #cell(price)="data">
-                    {{ formatPrice(data.item.sale_price) }}
+                    {{ formatPrice(data.item.price) }}
                 </template>
                 <template #cell(stock)="data">
                     {{ getTotalStock(data.item) }}
@@ -281,8 +291,8 @@ const fetchProducts = async () => {
         })
         products.value = response.data.data.map(product => ({
             ...product,
-            sale_price: product.variants?.[0]?.prices?.[0]?.sellPrice || 0,
-            discounted_price: product.variants?.[0]?.prices?.[0]?.discountPrice || 0,
+            //sale_price: product.variants?.[0]?.sale_price || 0,
+            //discounted_price: product.variants?.[0]?.discounted_price || 0,
         }))
         
         // Kategori ve marka seçeneklerini güncelle
@@ -329,7 +339,7 @@ const addItemToCart = (product, variant = null) => {
     const item = {
         id: variant?.id || product.id,
         name: product.name + (variant ? ` - ${formatVariantName(variant)}` : ''),
-        price: variant?.sale_price || product.sale_price,
+        price: variant?.price || product.price,
         quantity: 1,
         product_id: product.id,
         variant_id: variant?.id

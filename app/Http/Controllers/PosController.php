@@ -44,10 +44,13 @@ class PosController extends Controller
 
     public function pos($customerId)
     {
-        $customer = Customer::findOrFail($customerId);
-        
-        return Inertia::render('Pos/Sale', [
-            'customer' => $customer
-        ]);
+        try {
+            $customer = Customer::findOrFail($customerId);
+            return Inertia::render('Pos/Sale', [
+                'customer' => $customer
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->route('pos.index')->with('error', 'Customer not found');
+        }
     }
 }
