@@ -179,8 +179,18 @@
                             <div v-if="couponError" class="text-danger small mt-1">
                                 {{ couponError }}
                             </div>
-                            <div v-if="appliedCoupon" class="text-success small mt-1">
-                                Kupon uygulandı: {{ appliedCoupon.code }} ({{ appliedCoupon.discount_type === 'percentage' ? '%' + appliedCoupon.amount : formatPrice(appliedCoupon.amount) }})
+                            <div v-if="appliedCoupon" class="text-success small mt-1 d-flex justify-content-between align-items-center">
+                                <span>
+                                    Kupon uygulandı: {{ appliedCoupon.code }} ({{ appliedCoupon.discount_type === 'percentage' ? '%' + appliedCoupon.amount : formatPrice(appliedCoupon.amount) }})
+                                </span>
+                                <BButton
+                                    variant="link"
+                                    size="sm"
+                                    class="text-danger p-0"
+                                    @click="removeCoupon"
+                                >
+                                    <i class="ri-delete-bin-line"></i>
+                                </BButton>
                             </div>
                         </div>
 
@@ -637,6 +647,12 @@ const getCartItemQuantity = (productId, variantId = null) => {
         i.product_id === productId && i.variant_id === variantId
     )
     return item ? item.quantity : 0
+}
+
+// Kupon silme
+const removeCoupon = () => {
+    appliedCoupon.value = null;
+    couponError.value = '';
 }
 
 // Sayfa yüklendiğinde ürünleri getir
