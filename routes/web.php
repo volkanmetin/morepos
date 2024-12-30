@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SaleController;
 use App\Services\CouponService;
+use App\Http\Controllers\SettingController;
 
 Route::domain(config('app.domain'))->middleware(['auth:sanctum', config('jetstream.auth_session')])->group(function () {
     Route::get('/', [HomeController::class, 'redirectToTenant']);
@@ -205,6 +206,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
 
     // Sales Routes
     Route::resource('sales', SaleController::class)->only(['index', 'store', 'show']);
+
+    // Settings Routes
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [SettingController::class, 'index'])->name('index');
+        Route::post('/', [SettingController::class, 'update'])->name('update');
+    });
 });
 
 //Route::get('/pos', [PosController::class, 'index'])->name('pos.index');

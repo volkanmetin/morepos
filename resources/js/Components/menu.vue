@@ -110,6 +110,12 @@ export default {
                         <i class="fa fa-store fs-base"></i> <span data-key="vendor.title">{{ $t("vendor.title") }}</span>
                     </Link>
                 </li>
+
+                <li class="nav-item">
+                    <Link :href="route('settings.index')" :class="{active: $page.component === 'Settings/Index'}" class="nav-link menu-link">
+                        <i class="fa fa-cog fs-base"></i> <span data-key="settings.title">{{ $t("settings.title") }}</span>
+                    </Link>
+                </li>
             </ul>
         </template>
     </BContainer>
