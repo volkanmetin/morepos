@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Services\CouponService;
 use App\Services\SettingService;
 use App\Enums\SettingKey;
+use App\Enums\PaymentMethod;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -82,5 +83,14 @@ class PosController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    public function sale(Customer $customer)
+    {
+        return Inertia::render('Pos/Sale', [
+            'customer' => $customer,
+            'taxRate' => $this->settingService->get(SettingKey::TAX_RATE, 18),
+            'paymentMethods' => PaymentMethod::options()
+        ]);
     }
 }

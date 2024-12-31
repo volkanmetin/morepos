@@ -380,6 +380,10 @@ const props = defineProps({
         type: Number,
         required: true,
         default: 18
+    },
+    paymentMethods: {
+        type: Array,
+        required: true
     }
 })
 
@@ -416,11 +420,7 @@ const variantFields = [
 
 // Ödeme yöntemi
 const selectedPaymentMethod = ref('cash')
-const paymentMethods = [
-    { value: 'cash', text: 'NAKİT', icon: 'ri-money-dollar-circle-line' },
-    { value: 'pos1', text: 'POS 1', icon: 'ri-bank-card-line' },
-    { value: 'pos2', text: 'POS 2', icon: 'ri-bank-card-2-line' },
-]
+const paymentMethods = computed(() => props.paymentMethods)
 
 // Kupon kodu
 const couponCode = ref('')
