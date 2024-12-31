@@ -126,55 +126,8 @@ class PosController extends Controller
         return Inertia::render('Pos/Sale', [
             'sale' => $sale,
             'customer' => $sale->customer,
-            'taxRate' => $sale->tax_rate,
+            'taxRate' => (float) $sale->tax_rate,
             'paymentMethods' => PaymentMethod::options()
-        ]);
-    }
-
-    public function completeSale(string $uuid, Request $request)
-    {
-        $sale = Sale::where('uuid', $uuid)
-            ->where('status', SaleStatus::PENDING)
-            ->firstOrFail();
-
-        $validated = $request->validate([
-            'payment_method' => 'required|string',
-            'subtotal' => 'required|numeric|min:0',
-            'tax_rate' => 'required|numeric|min:0',
-            'tax_amount' => 'required|numeric|min:0',
-            'discount_amount' => 'required|numeric|min:0',
-            'total' => 'required|numeric|min:0',
-            'items' => 'required|array',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|numeric|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.total' => 'required|numeric|min:0',
-        ]);
-
-        $sale->update([
-            'payment_method' => $validated['payment_method'],
-            'subtotal' => $validated['subtotal'],
-            'tax_rate' => $validated['tax_rate'],
-            'tax_amount' => $validated['tax_amount'],
-            'discount_amount' => $validated['discount_amount'],
-            'total' => $validated['total'],
-            'status' => SaleStatus::COMPLETED
-        ]);
-
-        // Satış detaylarını kaydet
-        foreach ($validated['items'] as $item) {
-            $sale->items()->create([
-                'product_id' => $item['product_id'],
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
-                'total' => $item['total']
-            ]);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Satış başarıyla tamamlandı',
-            'sale' => $sale->load('items')
         ]);
     }
 }

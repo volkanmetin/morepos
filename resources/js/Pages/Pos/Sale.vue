@@ -372,6 +372,10 @@ import {
 import axios from 'axios'
 
 const props = defineProps({
+    sale: {
+        type: Object,
+        required: true
+    },
     customer: {
         type: Object,
         required: true
@@ -666,12 +670,14 @@ const manualDiscountAmount = computed(() => {
 const completeSale = async () => {
     try {
         const saleData = {
+            uuid: props.sale.uuid,
             customer_id: props.customer.id,
             items: cartItems.value.map(item => ({
                 product_id: item.product_id,
                 variant_id: item.variant_id,
                 quantity: item.quantity,
-                price: item.price
+                price: item.price,
+                total: item.total
             })),
             payment_method: selectedPaymentMethod.value,
             coupon_id: appliedCoupon.value?.id,
@@ -682,8 +688,10 @@ const completeSale = async () => {
             total: total.value
         }
         
-        await axios.post(route('sales.store'), saleData)
-        router.visit(route('sales.index'))
+        const response = await axios.post(route('sales.store'), saleData)
+        if (response.data.success) {
+            router.visit(route('pos.index'))
+        }
     } catch (error) {
         console.error('Satış tamamlanırken hata oluştu:', error)
     }

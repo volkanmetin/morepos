@@ -15,6 +15,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\SettingKey;
 use App\Services\SettingService;
 use Illuminate\Validation\Rule;
+use App\Enums\SaleStatus;
 
 class SaleController extends Controller
 {
@@ -41,6 +42,7 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'uuid' => 'required|string|exists:sales,uuid',
             'customer_id' => 'required|exists:customers,id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -60,6 +62,11 @@ class SaleController extends Controller
 
         try {
             DB::beginTransaction();
+
+            // Bekleyen satışı bul
+            $sale = Sale::where('uuid', $validated['uuid'])
+                ->where('status', SaleStatus::PENDING)
+                ->firstOrFail();
 
             // Stok kontrolü
             foreach ($validated['items'] as $item) {
@@ -82,27 +89,24 @@ class SaleController extends Controller
                 }
             }
 
-            // KDV oranını ayarlardan al
-            $taxRate = (float) $this->settingService->get(SettingKey::TAX_RATE->value, 18);
-
-            // Satış oluştur
-            $sale = Sale::create([
-                'user_id' => auth()->id(),
-                'customer_id' => $validated['customer_id'],
+            // Satışı güncelle
+            $sale->update([
                 'payment_method' => $validated['payment_method'],
                 'coupon_id' => $validated['coupon_id'] ?? null,
                 'manual_discount' => $validated['manual_discount'] ?? null,
                 'subtotal' => $validated['subtotal'],
-                'tax_rate' => $taxRate,
                 'tax_amount' => $validated['tax_amount'],
                 'discount_amount' => $validated['discount_amount'],
                 'total' => $validated['total'],
-                'status' => 'completed',
+                'status' => SaleStatus::COMPLETED,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent()
             ]);
 
-            // Satış detaylarını oluştur
+            // Önceki satış detaylarını sil
+            $sale->items()->delete();
+
+            // Yeni satış detaylarını oluştur
             foreach ($validated['items'] as $item) {
                 $product = Product::with(['category', 'brand'])->find($item['product_id']);
                 $variant = $item['variant_id'] ? ProductVariant::with(['attributeValues.attributeGroup'])->find($item['variant_id']) : null;
