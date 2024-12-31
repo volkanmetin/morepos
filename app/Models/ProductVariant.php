@@ -30,6 +30,10 @@ class ProductVariant extends Model implements HasMedia
             if (! $productVariant->barcode) {
                 $productVariant->barcode = Str::random(10);
             }
+
+            if (! $productVariant->sale_price || $productVariant->sale_price == 0) {
+                $productVariant->sale_price = $productVariant->product->sale_price;
+            }
         });
     }
 

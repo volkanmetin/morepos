@@ -10,6 +10,7 @@ use App\Models\ProductVariant;
 use App\Enums\SaleStatus;
 use App\Enums\SettingKey;
 use App\Services\SettingService;
+use App\Services\SaleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Tenant;
@@ -18,10 +19,12 @@ use App\Http\Resources\SaleResource;
 class SaleController extends Controller
 {
     protected $settingService;
+    protected $saleService;
 
-    public function __construct(SettingService $settingService)
+    public function __construct(SettingService $settingService, SaleService $saleService)
     {
         $this->settingService = $settingService;
+        $this->saleService = $saleService;
     }
 
     public function getPendingSales()
@@ -62,10 +65,8 @@ class SaleController extends Controller
 
         DB::beginTransaction();
         try {
-
             $tenant = Tenant::where('database', 'more-test')->firstOrFail();
             $tenant->makeCurrent();
-            
 
             // Satışı bul ve durumunu kontrol et
             $sale = Sale::where('uuid', $uuid)
@@ -79,46 +80,44 @@ class SaleController extends Controller
                 throw new \Exception('Ürün bulunamadı');
             }
 
-            //$product = Product::findOrFail($variant->product_id);
-
             $product = Product::with(['category', 'brand'])->findOrFail($variant->product_id);
                 
-                // Ürün ve varyant verilerinin anlık görüntüsünü al
-                $productSnapshot = [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'category' => $product->category?->name,
-                    'brand' => $product->brand?->name,
-                    'sale_price' => $product->sale_price,
-                    'discounted_price' => $product->discounted_price,
-                    'stock' => $product->variants->sum(function ($variant) {
-                        return $variant->stocks->sum('quantity');
-                    })
-                ];
+            // Ürün ve varyant verilerinin anlık görüntüsünü al
+            $productSnapshot = [
+                'id' => $product->id,
+                'name' => $product->name,
+                'category' => $product->category?->name,
+                'brand' => $product->brand?->name,
+                'sale_price' => $product->sale_price,
+                'discounted_price' => $product->discounted_price,
+                'stock' => $product->variants->sum(function ($variant) {
+                    return $variant->stocks->sum('quantity');
+                })
+            ];
 
-                $variantSnapshot = null;
-                if ($variant) {
-                    $variantSnapshot = [
-                        'id' => $variant->id,
-                        'name' => $variant->name,
-                        'sku' => $variant->sku,
-                        'barcode' => $variant->barcode,
-                        'sale_price' => $variant->sale_price,
-                        'discounted_price' => $variant->discounted_price,
-                        'stocks' => $variant->stocks->map(function ($stock) {
-                            return [
-                                'warehouse_id' => $stock->warehouse_id,
-                                'quantity' => $stock->quantity
-                            ];
-                        })->toArray(),
-                        'attributes' => $variant->attributeValues->map(function ($av) {
-                            return [
-                                'group' => $av->attributeGroup->name,
-                                'value' => $av->value
-                            ];
-                        })->toArray()
-                    ];
-                }
+            $variantSnapshot = null;
+            if ($variant) {
+                $variantSnapshot = [
+                    'id' => $variant->id,
+                    'name' => $variant->name,
+                    'sku' => $variant->sku,
+                    'barcode' => $variant->barcode,
+                    'sale_price' => $variant->sale_price,
+                    'discounted_price' => $variant->discounted_price,
+                    'stocks' => $variant->stocks->map(function ($stock) {
+                        return [
+                            'warehouse_id' => $stock->warehouse_id,
+                            'quantity' => $stock->quantity
+                        ];
+                    })->toArray(),
+                    'attributes' => $variant->attributeValues->map(function ($av) {
+                        return [
+                            'group' => $av->attributeGroup->name,
+                            'value' => $av->value
+                        ];
+                    })->toArray()
+                ];
+            }
 
             // Mevcut sepet öğesini kontrol et
             $saleItem = SaleItem::where('sale_id', $sale->id)
@@ -150,23 +149,15 @@ class SaleController extends Controller
                 ]);
             }
 
-            // Satış toplamlarını güncelle
-            $subtotal = $sale->items->sum('total');
-            $taxRate = $this->settingService->get(SettingKey::TAX_RATE, 0);
-            $taxAmount = $subtotal * ($taxRate / 100);
-
-            $sale->update([
-                'subtotal' => $subtotal,
-                'tax_amount' => $taxAmount,
-                'total' => $subtotal + $taxAmount,
-            ]);
+            // Satış toplamlarını yeniden hesapla
+            $sale = $this->saleService->recalculateTotals($sale);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Ürün sepete eklendi',
-                'sale' => $sale->load(['items.product', 'items.variant'])
+                'sale' => new SaleResource($sale->load(['items.product', 'items.variant']))
             ]);
 
         } catch (\Exception $e) {
