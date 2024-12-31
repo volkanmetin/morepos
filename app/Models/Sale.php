@@ -8,30 +8,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\HasTenant;
 use Illuminate\Support\Str;
 use App\Enums\SaleStatus;
+use App\Enums\PaymentMethod;
 
 class Sale extends Model
 {
     use HasFactory, SoftDeletes;
     use HasTenant;
 
-    protected $fillable = [
-        'tenant_id',
-        'user_id',
-        'customer_id',
-        'coupon_id',
-        'payment_method',
-        'subtotal',
-        'tax_rate',
-        'tax_amount',
-        'discount_amount',
-        'manual_discount',
-        'total',
-        'status',
-        'notes',
-        'ip_address',
-        'user_agent',
-        'uuid'
-    ];
+    protected $guarded = [];
 
     protected $casts = [
         'subtotal' => 'decimal:2',
@@ -41,7 +25,12 @@ class Sale extends Model
         'total' => 'decimal:2',
         'manual_discount' => 'json',
         'uuid' => 'string',
-        'status' => SaleStatus::class
+        'status' => SaleStatus::class,
+        'payment_method' => PaymentMethod::class,
+        'tenant_id' => 'integer',
+        'user_id' => 'integer',
+        'customer_id' => 'integer',
+        'coupon_id' => 'integer',
     ];
 
     protected static function boot()

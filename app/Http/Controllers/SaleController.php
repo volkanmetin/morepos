@@ -117,18 +117,27 @@ class SaleController extends Controller
                     'name' => $product->name,
                     'category' => $product->category?->name,
                     'brand' => $product->brand?->name,
+                    'sale_price' => $item['sale_price'] ?? 0,
+                    'discounted_price' => $item['discounted_price'] ?? 0,
                 ];
 
-                $variantSnapshot = $variant ? [
-                    'id' => $variant->id,
-                    'name' => $variant->name,
-                    'attributes' => $variant->attributeValues->map(function ($av) {
-                        return [
-                            'group' => $av->attributeGroup->name,
-                            'value' => $av->value
-                        ];
-                    })
-                ] : null;
+                $variantSnapshot = null;
+                if ($variant) {
+                    $variantSnapshot = [
+                        'id' => $variant->id,
+                        'name' => $variant->name,
+                        'sku' => $variant->sku,
+                        'barcode' => $variant->barcode,
+                        'sale_price' => $item['sale_price'] ?? 0,
+                        'discounted_price' => $item['discounted_price'] ?? 0,
+                        'attributes' => $variant->attributeValues->map(function ($av) {
+                            return [
+                                'group' => $av->attributeGroup->name,
+                                'value' => $av->value
+                            ];
+                        })->toArray()
+                    ];
+                }
 
                 // Satış detayını oluştur
                 SaleItem::create([
@@ -138,8 +147,8 @@ class SaleController extends Controller
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
                     'total' => $item['price'] * $item['quantity'],
-                    'product_snapshot' => $productSnapshot,
-                    'variant_snapshot' => $variantSnapshot
+                    'product_snapshot' => $productSnapshot ?? null,
+                    'variant_snapshot' => $variantSnapshot ?? null
                 ]);
 
                 // Stok güncelle
@@ -179,6 +188,7 @@ class SaleController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            report($e);
             
             return response()->json([
                 'success' => false,

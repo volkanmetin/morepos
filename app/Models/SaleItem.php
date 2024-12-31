@@ -10,18 +10,13 @@ class SaleItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'sale_id',
-        'product_id',
-        'product_variant_id',
-        'quantity',
-        'price',
-        'total',
-    ];
+    protected $guarded = [];
 
     protected $casts = [
         'price' => 'decimal:2',
         'total' => 'decimal:2',
+        'product_snapshot' => 'json',
+        'variant_snapshot' => 'json',
     ];
 
     public function sale(): BelongsTo
