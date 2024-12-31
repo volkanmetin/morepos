@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\HasTenant;
+use Illuminate\Support\Str;
 
 class Sale extends Model
 {
@@ -27,7 +28,8 @@ class Sale extends Model
         'status',
         'notes',
         'ip_address',
-        'user_agent'
+        'user_agent',
+        'uuid'
     ];
 
     protected $casts = [
@@ -36,8 +38,20 @@ class Sale extends Model
         'tax_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'total' => 'decimal:2',
-        'manual_discount' => 'json'
+        'manual_discount' => 'json',
+        'uuid' => 'string'
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = Str::uuid();
+            }
+        });
+    }
 
     public function tenant()
     {
