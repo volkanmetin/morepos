@@ -483,7 +483,7 @@ const addItemToCart = (product, variant = null) => {
     const item = {
         id: variant?.id || product.id,
         name: product.name + (variant ? ` - ${formatVariantName(variant)}` : ''),
-        price: variant?.price || product.price,
+        price: variant?.price || product.sale_price || product.price,
         quantity: 1,
         product_id: product.id,
         variant_id: variant?.id,
@@ -502,7 +502,7 @@ const addItemToCart = (product, variant = null) => {
         cartItems.value[existingIndex].quantity++
         updateItemTotal(existingIndex)
     } else {
-        item.total = item.price
+        item.total = parseFloat(item.price) * item.quantity
         cartItems.value.push(item)
     }
     
@@ -530,12 +530,12 @@ const decreaseQuantity = (index) => {
 
 const updateItemTotal = (index) => {
     const item = cartItems.value[index]
-    item.total = item.price * item.quantity
+    item.total = parseFloat(item.price) * item.quantity
 }
 
 // Hesaplamalar
 const subtotal = computed(() => {
-    return cartItems.value.reduce((sum, item) => sum + item.total, 0)
+    return cartItems.value.reduce((sum, item) => sum + parseFloat(item.total), 0)
 })
 
 const discountedSubtotal = computed(() => {
