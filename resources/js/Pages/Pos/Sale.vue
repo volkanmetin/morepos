@@ -88,219 +88,226 @@
             <BCol cols="4">
                 <BCard>
                     <BCardBody>
-                        <div class="customer-info mb-3">
-                            <h5 class="mb-2">Müşteri Bilgileri</h5>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <p class="mb-1"><strong>{{ customer.name }}</strong></p>
-                                    <p class="mb-1 text-muted small">{{ customer.phone }}</p>
-                                    <p class="mb-0 text-muted small">{{ customer.email }}</p>
+                        <div class="position-relative">
+                            <!-- Loading Overlay -->
+                            <div v-if="isCartUpdating" class="cart-loading-overlay">
+                                <BSpinner variant="primary" label="Güncelleniyor..."></BSpinner>
+                            </div>
+
+                            <div class="customer-info mb-3">
+                                <h5 class="mb-2">Müşteri Bilgileri</h5>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="mb-1"><strong>{{ customer.name }}</strong></p>
+                                        <p class="mb-1 text-muted small">{{ customer.phone }}</p>
+                                        <p class="mb-0 text-muted small">{{ customer.email }}</p>
+                                    </div>
+                                    <BButton
+                                        variant="outline-primary"
+                                        size="sm"
+                                        @click="router.visit(route('pos.index'))"
+                                    >
+                                        Değiştir
+                                    </BButton>
                                 </div>
-                                <BButton
-                                    variant="outline-primary"
-                                    size="sm"
-                                    @click="router.visit(route('pos.index'))"
-                                >
-                                    Değiştir
-                                </BButton>
                             </div>
-                        </div>
 
-                        <hr>
+                            <hr>
 
-                        <div class="cart-items">
-                            <h5 class="mb-3">Sepet</h5>
-                            <div v-if="cartItems.length === 0" class="text-center text-muted py-3">
-                                Sepet boş
-                            </div>
-                            <div v-else class="cart-list">
-                                <div v-for="(item, index) in cartItems" :key="index" class="cart-item mb-2 p-2 border rounded">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1">{{ item.name }}</h6>
-                                            <div class="d-flex align-items-center">
-                                                <BButton
-                                                    variant="outline-secondary"
-                                                    size="sm"
-                                                    @click="decreaseQuantity(index)"
-                                                    :disabled="item.quantity <= 1"
-                                                >
-                                                    -
-                                                </BButton>
-                                                <span class="mx-2">{{ item.quantity }}</span>
-                                                <BButton
-                                                    variant="outline-secondary"
-                                                    size="sm"
-                                                    @click="increaseQuantity(index)"
-                                                    :disabled="item.quantity >= item.max_stock"
-                                                >
-                                                    +
-                                                </BButton>
+                            <div class="cart-items">
+                                <h5 class="mb-3">Sepet</h5>
+                                <div v-if="cartItems.length === 0" class="text-center text-muted py-3">
+                                    Sepet boş
+                                </div>
+                                <div v-else class="cart-list">
+                                    <div v-for="(item, index) in cartItems" :key="index" class="cart-item mb-2 p-2 border rounded">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">{{ item.name }}</h6>
+                                                <div class="d-flex align-items-center">
+                                                    <BButton
+                                                        variant="outline-secondary"
+                                                        size="sm"
+                                                        @click="decreaseQuantity(index)"
+                                                        :disabled="item.quantity <= 1"
+                                                    >
+                                                        -
+                                                    </BButton>
+                                                    <span class="mx-2">{{ item.quantity }}</span>
+                                                    <BButton
+                                                        variant="outline-secondary"
+                                                        size="sm"
+                                                        @click="increaseQuantity(index)"
+                                                        :disabled="item.quantity >= item.max_stock"
+                                                    >
+                                                        +
+                                                    </BButton>
+                                                </div>
+                                                <div class="small text-muted mt-1">
+                                                    Stok: {{ item.quantity }}/{{ item.max_stock }}
+                                                </div>
                                             </div>
-                                            <div class="small text-muted mt-1">
-                                                Stok: {{ item.quantity }}/{{ item.max_stock }}
+                                            <div class="text-end">
+                                                <div class="fw-bold">{{ formatPrice(item.total) }}</div>
+                                                <BButton
+                                                    variant="link"
+                                                    size="sm"
+                                                    class="text-danger p-0"
+                                                    @click="removeFromCart(index)"
+                                                >
+                                                    Kaldır
+                                                </BButton>
                                             </div>
                                         </div>
-                                        <div class="text-end">
-                                            <div class="fw-bold">{{ formatPrice(item.total) }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr v-if="cartItems.length > 0">
+
+                            <!-- Ödeme Yöntemi -->
+                            <div class="payment-method mb-3" v-if="cartItems.length > 0">
+                                <h6 class="mb-2">Ödeme Yöntemi</h6>
+                                <div class="payment-options d-flex gap-2">
+                                    <div
+                                        v-for="method in paymentMethods"
+                                        :key="method.value"
+                                        class="payment-option flex-1"
+                                    >
+                                        <input
+                                            type="radio"
+                                            :id="method.value"
+                                            v-model="selectedPaymentMethod"
+                                            :value="method.value"
+                                            class="d-none"
+                                        >
+                                        <label
+                                            :for="method.value"
+                                            class="payment-label w-100 text-center p-2 rounded border"
+                                            :class="{ 'active': selectedPaymentMethod === method.value }"
+                                        >
+                                            <i :class="method.icon" class="fs-4 d-block mb-1"></i>
+                                            {{ method.text }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Kupon Kodu -->
+                            <div class="coupon-code mb-3" v-if="cartItems.length > 0">
+                                <h6 class="mb-2">Kupon Kodu</h6>
+                                <BInputGroup>
+                                    <BFormInput
+                                        v-model="couponCode"
+                                        placeholder="Kupon kodu girin"
+                                    />
+                                    <BButton
+                                        variant="primary"
+                                        @click="applyCoupon"
+                                        :disabled="!couponCode"
+                                    >
+                                        Uygula
+                                    </BButton>
+                                </BInputGroup>
+                                <div v-if="couponError" class="text-danger small mt-1">
+                                    {{ couponError }}
+                                </div>
+                                <div v-if="appliedCoupon" class="text-success small mt-1 d-flex justify-content-between align-items-center">
+                                    <span>
+                                        Kupon uygulandı: {{ appliedCoupon.code }} ({{ appliedCoupon.discount_type === 'percentage' ? '%' + appliedCoupon.amount : formatPrice(appliedCoupon.amount) }})
+                                    </span>
+                                    <BButton
+                                        variant="link"
+                                        size="sm"
+                                        class="text-danger p-0"
+                                        @click="removeCoupon"
+                                    >
+                                        <i class="ri-delete-bin-line"></i>
+                                    </BButton>
+                                </div>
+                            </div>
+
+                            <!-- Manuel İndirim -->
+                            <div class="manual-discount mb-3" v-if="cartItems.length > 0">
+                                <h6 class="mb-2">İndirim Uygula</h6>
+                                <div class="d-flex gap-2">
+                                    <BFormSelect
+                                        v-model="discountType"
+                                        :options="discountTypes"
+                                        style="width: 150px"
+                                    />
+                                    <BFormInput
+                                        v-model.number="discountAmount"
+                                        type="number"
+                                        min="0"
+                                        :max="discountType === 'percentage' ? 100 : subtotal"
+                                        placeholder="Değer"
+                                    />
+                                    <BButton
+                                        variant="primary"
+                                        @click="applyDiscount"
+                                        :disabled="!discountAmount"
+                                    >
+                                        Uygula
+                                    </BButton>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <!-- Özet -->
+                            <div class="cart-summary">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Ara Toplam:</span>
+                                    <span>{{ formatPrice(subtotal) }}</span>
+                                </div>
+                                
+                                <template v-if="appliedCoupon">
+                                    <div class="d-flex justify-content-between mb-2 text-success">
+                                        <span>Kupon İndirimi:</span>
+                                        <span>-{{ formatPrice(couponDiscountAmount) }}</span>
+                                    </div>
+                                </template>
+
+                                <template v-if="manualDiscount">
+                                    <div class="d-flex justify-content-between mb-2 text-success">
+                                        <div class="d-flex align-items-center">
+                                            <span>Manuel İndirim:</span>
                                             <BButton
                                                 variant="link"
                                                 size="sm"
-                                                class="text-danger p-0"
-                                                @click="removeFromCart(index)"
+                                                class="text-danger p-0 ms-1"
+                                                @click="removeManualDiscount"
                                             >
-                                                Kaldır
+                                                <i class="ri-delete-bin-line"></i>
                                             </BButton>
                                         </div>
+                                        <span>-{{ formatPrice(manualDiscountAmount) }}</span>
                                     </div>
+                                </template>
+
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>KDV ({{ props.taxRate }}%):</span>
+                                    <span>{{ formatPrice(taxAmount) }}</span>
+                                </div>
+
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>Toplam:</span>
+                                    <span>{{ formatPrice(total) }}</span>
                                 </div>
                             </div>
-                        </div>
 
-                        <hr v-if="cartItems.length > 0">
-
-                        <!-- Ödeme Yöntemi -->
-                        <div class="payment-method mb-3" v-if="cartItems.length > 0">
-                            <h6 class="mb-2">Ödeme Yöntemi</h6>
-                            <div class="payment-options d-flex gap-2">
-                                <div
-                                    v-for="method in paymentMethods"
-                                    :key="method.value"
-                                    class="payment-option flex-1"
-                                >
-                                    <input
-                                        type="radio"
-                                        :id="method.value"
-                                        v-model="selectedPaymentMethod"
-                                        :value="method.value"
-                                        class="d-none"
-                                    >
-                                    <label
-                                        :for="method.value"
-                                        class="payment-label w-100 text-center p-2 rounded border"
-                                        :class="{ 'active': selectedPaymentMethod === method.value }"
-                                    >
-                                        <i :class="method.icon" class="fs-4 d-block mb-1"></i>
-                                        {{ method.text }}
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Kupon Kodu -->
-                        <div class="coupon-code mb-3" v-if="cartItems.length > 0">
-                            <h6 class="mb-2">Kupon Kodu</h6>
-                            <BInputGroup>
-                                <BFormInput
-                                    v-model="couponCode"
-                                    placeholder="Kupon kodu girin"
-                                />
+                            <div class="mt-4">
                                 <BButton
                                     variant="primary"
-                                    @click="applyCoupon"
-                                    :disabled="!couponCode"
+                                    class="w-100"
+                                    size="lg"
+                                    :disabled="cartItems.length === 0"
+                                    @click="completeSale"
                                 >
-                                    Uygula
-                                </BButton>
-                            </BInputGroup>
-                            <div v-if="couponError" class="text-danger small mt-1">
-                                {{ couponError }}
-                            </div>
-                            <div v-if="appliedCoupon" class="text-success small mt-1 d-flex justify-content-between align-items-center">
-                                <span>
-                                    Kupon uygulandı: {{ appliedCoupon.code }} ({{ appliedCoupon.discount_type === 'percentage' ? '%' + appliedCoupon.amount : formatPrice(appliedCoupon.amount) }})
-                                </span>
-                                <BButton
-                                    variant="link"
-                                    size="sm"
-                                    class="text-danger p-0"
-                                    @click="removeCoupon"
-                                >
-                                    <i class="ri-delete-bin-line"></i>
+                                    Satışı Tamamla
                                 </BButton>
                             </div>
-                        </div>
-
-                        <!-- Manuel İndirim -->
-                        <div class="manual-discount mb-3" v-if="cartItems.length > 0">
-                            <h6 class="mb-2">İndirim Uygula</h6>
-                            <div class="d-flex gap-2">
-                                <BFormSelect
-                                    v-model="discountType"
-                                    :options="discountTypes"
-                                    style="width: 150px"
-                                />
-                                <BFormInput
-                                    v-model.number="discountAmount"
-                                    type="number"
-                                    min="0"
-                                    :max="discountType === 'percentage' ? 100 : subtotal"
-                                    placeholder="Değer"
-                                />
-                                <BButton
-                                    variant="primary"
-                                    @click="applyDiscount"
-                                    :disabled="!discountAmount"
-                                >
-                                    Uygula
-                                </BButton>
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <!-- Özet -->
-                        <div class="cart-summary">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Ara Toplam:</span>
-                                <span>{{ formatPrice(subtotal) }}</span>
-                            </div>
-                            
-                            <template v-if="appliedCoupon">
-                                <div class="d-flex justify-content-between mb-2 text-success">
-                                    <span>Kupon İndirimi:</span>
-                                    <span>-{{ formatPrice(couponDiscountAmount) }}</span>
-                                </div>
-                            </template>
-
-                            <template v-if="manualDiscount">
-                                <div class="d-flex justify-content-between mb-2 text-success">
-                                    <div class="d-flex align-items-center">
-                                        <span>Manuel İndirim:</span>
-                                        <BButton
-                                            variant="link"
-                                            size="sm"
-                                            class="text-danger p-0 ms-1"
-                                            @click="removeManualDiscount"
-                                        >
-                                            <i class="ri-delete-bin-line"></i>
-                                        </BButton>
-                                    </div>
-                                    <span>-{{ formatPrice(manualDiscountAmount) }}</span>
-                                </div>
-                            </template>
-
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>KDV ({{ props.taxRate }}%):</span>
-                                <span>{{ formatPrice(taxAmount) }}</span>
-                            </div>
-
-                            <div class="d-flex justify-content-between fw-bold">
-                                <span>Toplam:</span>
-                                <span>{{ formatPrice(total) }}</span>
-                            </div>
-                        </div>
-
-                        <div class="mt-4">
-                            <BButton
-                                variant="primary"
-                                class="w-100"
-                                size="lg"
-                                :disabled="cartItems.length === 0"
-                                @click="completeSale"
-                            >
-                                Satışı Tamamla
-                            </BButton>
                         </div>
                     </BCardBody>
                 </BCard>
@@ -440,6 +447,9 @@ const discountTypes = [
     { value: 'fixed', text: 'Sabit Tutar' },
 ]
 
+// Loading durumu
+const isCartUpdating = ref(false)
+
 // Ürünleri getir
 const fetchProducts = async () => {
     isLoading.value = true
@@ -558,15 +568,16 @@ const updateItemTotal = (index) => {
 // Sepeti güncelle
 const updateCart = async () => {
     try {
+        isCartUpdating.value = true
         const cartData = {
             uuid: props.sale.uuid,
-            items: cartItems.value.map(item => ({
+            items: cartItems.value.length > 0 ? cartItems.value.map(item => ({
                 product_id: item.product_id,
                 variant_id: item.variant_id,
                 quantity: item.quantity,
                 price: item.price,
                 total: item.total
-            })),
+            })) : [],
             payment_method: selectedPaymentMethod.value,
             coupon_id: appliedCoupon.value?.id,
             manual_discount: manualDiscount.value,
@@ -579,6 +590,8 @@ const updateCart = async () => {
         await axios.post(route('sales.update-cart'), cartData)
     } catch (error) {
         console.error('Sepet güncellenirken hata oluştu:', error)
+    } finally {
+        isCartUpdating.value = false
     }
 }
 
@@ -769,14 +782,22 @@ onMounted(async () => {
                 ? JSON.parse(item.variant_snapshot)
                 : item.variant_snapshot;
 
+            const variantName = variantSnapshot?.attributes
+                ? variantSnapshot.attributes.map(attr => attr.value).join(' - ')
+                : variantSnapshot?.name || '';
+
+            const maxStock = variantSnapshot
+                ? variantSnapshot.stocks?.reduce((sum, stock) => sum + stock.quantity, 0) || 0
+                : productSnapshot.stock || 0;
+
             return {
                 id: item.variant_id || item.product_id,
-                name: productSnapshot.name + (variantSnapshot ? ` - ${formatVariantName(variantSnapshot)}` : ''),
+                name: productSnapshot.name + (variantName ? ` - ${variantName}` : ''),
                 price: item.price,
                 quantity: item.quantity,
                 product_id: item.product_id,
                 variant_id: item.variant_id,
-                max_stock: item.variant ? getTotalStock(item.variant) : item.product.stock,
+                max_stock: maxStock,
                 total: item.total
             }
         })
@@ -898,5 +919,18 @@ onMounted(async () => {
             color: #dc3545;
         }
     }
+}
+
+.cart-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
 }
 </style> 

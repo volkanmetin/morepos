@@ -119,6 +119,9 @@ class SaleController extends Controller
                     'brand' => $product->brand?->name,
                     'sale_price' => $item['sale_price'] ?? 0,
                     'discounted_price' => $item['discounted_price'] ?? 0,
+                    'stock' => $product->variants->sum(function ($variant) {
+                        return $variant->stocks->sum('quantity');
+                    })
                 ];
 
                 $variantSnapshot = null;
@@ -130,6 +133,12 @@ class SaleController extends Controller
                         'barcode' => $variant->barcode,
                         'sale_price' => $item['sale_price'] ?? 0,
                         'discounted_price' => $item['discounted_price'] ?? 0,
+                        'stocks' => $variant->stocks->map(function ($stock) {
+                            return [
+                                'warehouse_id' => $stock->warehouse_id,
+                                'quantity' => $stock->quantity
+                            ];
+                        })->toArray(),
                         'attributes' => $variant->attributeValues->map(function ($av) {
                             return [
                                 'group' => $av->attributeGroup->name,
@@ -210,12 +219,12 @@ class SaleController extends Controller
     {
         $validated = $request->validate([
             'uuid' => 'required|string|exists:sales,uuid',
-            'items' => 'required|array',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items' => 'nullable|array',
+            'items.*.product_id' => 'required_with:items|exists:products,id',
             'items.*.variant_id' => 'nullable|exists:product_variants,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.total' => 'required|numeric|min:0',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
+            'items.*.price' => 'required_with:items|numeric|min:0',
+            'items.*.total' => 'required_with:items|numeric|min:0',
             'payment_method' => ['required', 'string', Rule::in(PaymentMethod::values())],
             'coupon_id' => 'nullable|exists:coupons,id',
             'manual_discount' => 'nullable|array',
@@ -261,6 +270,9 @@ class SaleController extends Controller
                     'brand' => $product->brand?->name,
                     'sale_price' => $product->sale_price,
                     'discounted_price' => $product->discounted_price,
+                    'stock' => $product->variants->sum(function ($variant) {
+                        return $variant->stocks->sum('quantity');
+                    })
                 ];
 
                 $variantSnapshot = null;
@@ -272,6 +284,12 @@ class SaleController extends Controller
                         'barcode' => $variant->barcode,
                         'sale_price' => $variant->sale_price,
                         'discounted_price' => $variant->discounted_price,
+                        'stocks' => $variant->stocks->map(function ($stock) {
+                            return [
+                                'warehouse_id' => $stock->warehouse_id,
+                                'quantity' => $stock->quantity
+                            ];
+                        })->toArray(),
                         'attributes' => $variant->attributeValues->map(function ($av) {
                             return [
                                 'group' => $av->attributeGroup->name,
