@@ -257,7 +257,17 @@
 
                             <template v-if="manualDiscount">
                                 <div class="d-flex justify-content-between mb-2 text-success">
-                                    <span>Manuel İndirim:</span>
+                                    <div class="d-flex align-items-center">
+                                        <span>Manuel İndirim:</span>
+                                        <BButton
+                                            variant="link"
+                                            size="sm"
+                                            class="text-danger p-0 ms-1"
+                                            @click="removeManualDiscount"
+                                        >
+                                            <i class="ri-delete-bin-line"></i>
+                                        </BButton>
+                                    </div>
                                     <span>-{{ formatPrice(manualDiscountAmount) }}</span>
                                 </div>
                             </template>
@@ -676,6 +686,11 @@ const getCartItemQuantity = (productId, variantId = null) => {
 const removeCoupon = () => {
     appliedCoupon.value = null;
     couponError.value = '';
+}
+
+// Manuel indirim silme
+const removeManualDiscount = () => {
+    manualDiscount.value = null;
 }
 
 // Sayfa yüklendiğinde ürünleri getir
