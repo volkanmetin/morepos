@@ -12,15 +12,19 @@ use Inertia\Inertia;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Enums\PaymentMethod;
+use App\Enums\SettingKey;
+use App\Services\SettingService;
 use Illuminate\Validation\Rule;
 
 class SaleController extends Controller
 {
     protected $couponService;
+    protected $settingService;
 
-    public function __construct(CouponService $couponService)
+    public function __construct(CouponService $couponService, SettingService $settingService)
     {
         $this->couponService = $couponService;
+        $this->settingService = $settingService;
     }
 
     public function index()
@@ -46,6 +50,8 @@ class SaleController extends Controller
             'payment_method' => ['required', 'string', Rule::in(PaymentMethod::values())],
             'coupon_id' => 'nullable|exists:coupons,id',
             'manual_discount' => 'nullable|array',
+            'manual_discount.type' => ['required_with:manual_discount', Rule::in(['percentage', 'fixed'])],
+            'manual_discount.amount' => 'required_with:manual_discount|numeric|min:0',
             'subtotal' => 'required|numeric|min:0',
             'discount_amount' => 'required|numeric|min:0',
             'tax_amount' => 'required|numeric|min:0',
@@ -76,19 +82,24 @@ class SaleController extends Controller
                 }
             }
 
+            // KDV oranını ayarlardan al
+            $taxRate = (float) $this->settingService->get(SettingKey::TAX_RATE->value, 18);
+
             // Satış oluştur
             $sale = Sale::create([
-                'tenant_id' => auth()->user()->tenant_id,
+                'user_id' => auth()->id(),
                 'customer_id' => $validated['customer_id'],
                 'payment_method' => $validated['payment_method'],
                 'coupon_id' => $validated['coupon_id'] ?? null,
                 'manual_discount' => $validated['manual_discount'] ?? null,
                 'subtotal' => $validated['subtotal'],
-                'tax_rate' => 18, // KDV oranı
+                'tax_rate' => $taxRate,
                 'tax_amount' => $validated['tax_amount'],
                 'discount_amount' => $validated['discount_amount'],
                 'total' => $validated['total'],
-                'status' => 'completed'
+                'status' => 'completed',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
             ]);
 
             // Satış detaylarını oluştur
@@ -147,7 +158,7 @@ class SaleController extends Controller
             }
 
             // Kupon kullanımını güncelle
-            if ($validated['coupon_id']) {
+            if (isset($validated['coupon_id'])) {
                 $coupon = Coupon::find($validated['coupon_id']);
                 if ($coupon) {
                     $this->couponService->markAsUsed($coupon, $sale->id);
