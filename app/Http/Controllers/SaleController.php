@@ -216,6 +216,7 @@ class SaleController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.total' => 'required|numeric|min:0',
+            'payment_method' => ['required', 'string', Rule::in(PaymentMethod::values())],
             'coupon_id' => 'nullable|exists:coupons,id',
             'manual_discount' => 'nullable|array',
             'manual_discount.type' => ['required_with:manual_discount', Rule::in(['percentage', 'fixed'])],
@@ -235,6 +236,7 @@ class SaleController extends Controller
 
             // Satışı güncelle
             $sale->update([
+                'payment_method' => $validated['payment_method'],
                 'coupon_id' => $validated['coupon_id'] ?? null,
                 'manual_discount' => $validated['manual_discount'] ?? null,
                 'subtotal' => $validated['subtotal'],

@@ -351,7 +351,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import Layout from '@/Layouts/Main.vue'
 import debounce from 'lodash/debounce'
@@ -567,6 +567,7 @@ const updateCart = async () => {
                 price: item.price,
                 total: item.total
             })),
+            payment_method: selectedPaymentMethod.value,
             coupon_id: appliedCoupon.value?.id,
             manual_discount: manualDiscount.value,
             subtotal: subtotal.value,
@@ -580,6 +581,11 @@ const updateCart = async () => {
         console.error('Sepet güncellenirken hata oluştu:', error)
     }
 }
+
+// Ödeme yöntemi değişikliğini izle
+watch(selectedPaymentMethod, async () => {
+    await updateCart()
+})
 
 // Hesaplamalar
 const subtotal = computed(() => {
@@ -754,16 +760,26 @@ const removeManualDiscount = async () => {
 onMounted(async () => {
     // Mevcut satış detaylarını yükle
     if (props.sale.items?.length > 0) {
-        cartItems.value = props.sale.items.map(item => ({
-            id: item.variant_id || item.product_id,
-            name: item.product.name + (item.variant ? ` - ${formatVariantName(item.variant)}` : ''),
-            price: item.price,
-            quantity: item.quantity,
-            product_id: item.product_id,
-            variant_id: item.variant_id,
-            max_stock: item.variant ? getTotalStock(item.variant) : item.product.stock,
-            total: item.total
-        }))
+        cartItems.value = props.sale.items.map(item => {
+            const productSnapshot = typeof item.product_snapshot === 'string' 
+                ? JSON.parse(item.product_snapshot)
+                : item.product_snapshot;
+
+            const variantSnapshot = item.variant_snapshot && typeof item.variant_snapshot === 'string'
+                ? JSON.parse(item.variant_snapshot)
+                : item.variant_snapshot;
+
+            return {
+                id: item.variant_id || item.product_id,
+                name: productSnapshot.name + (variantSnapshot ? ` - ${formatVariantName(variantSnapshot)}` : ''),
+                price: item.price,
+                quantity: item.quantity,
+                product_id: item.product_id,
+                variant_id: item.variant_id,
+                max_stock: item.variant ? getTotalStock(item.variant) : item.product.stock,
+                total: item.total
+            }
+        })
     }
 
     // Kupon bilgisini yükle
@@ -774,6 +790,11 @@ onMounted(async () => {
     // Manuel indirim bilgisini yükle
     if (props.sale.manual_discount) {
         manualDiscount.value = props.sale.manual_discount
+    }
+
+    // Ödeme yöntemini yükle
+    if (props.sale.payment_method) {
+        selectedPaymentMethod.value = props.sale.payment_method
     }
 
     // Ürünleri getir

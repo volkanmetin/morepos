@@ -121,6 +121,7 @@ class PosController extends Controller
     {
         $sale = Sale::where('uuid', $uuid)
             ->where('status', SaleStatus::PENDING)
+            ->with(['items', 'items.product', 'items.variant', 'customer', 'coupon'])
             ->firstOrFail();
 
         return Inertia::render('Pos/Sale', [
