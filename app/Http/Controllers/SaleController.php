@@ -205,4 +205,107 @@ class SaleController extends Controller
             'sale' => $sale
         ]);
     }
+
+    public function updateCart(Request $request)
+    {
+        $validated = $request->validate([
+            'uuid' => 'required|string|exists:sales,uuid',
+            'items' => 'required|array',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.variant_id' => 'nullable|exists:product_variants,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.total' => 'required|numeric|min:0',
+            'coupon_id' => 'nullable|exists:coupons,id',
+            'manual_discount' => 'nullable|array',
+            'manual_discount.type' => ['required_with:manual_discount', Rule::in(['percentage', 'fixed'])],
+            'manual_discount.amount' => 'required_with:manual_discount|numeric|min:0',
+            'subtotal' => 'required|numeric|min:0',
+            'discount_amount' => 'required|numeric|min:0',
+            'tax_amount' => 'required|numeric|min:0',
+            'total' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $sale = Sale::where('uuid', $validated['uuid'])
+                ->where('status', SaleStatus::PENDING)
+                ->firstOrFail();
+
+            // Satışı güncelle
+            $sale->update([
+                'coupon_id' => $validated['coupon_id'] ?? null,
+                'manual_discount' => $validated['manual_discount'] ?? null,
+                'subtotal' => $validated['subtotal'],
+                'tax_amount' => $validated['tax_amount'],
+                'discount_amount' => $validated['discount_amount'],
+                'total' => $validated['total']
+            ]);
+
+            // Önceki satış detaylarını sil
+            $sale->items()->delete();
+
+            // Yeni satış detaylarını oluştur
+            foreach ($validated['items'] as $item) {
+                $product = Product::with(['category', 'brand'])->find($item['product_id']);
+                $variant = $item['variant_id'] ? ProductVariant::with(['attributeValues.attributeGroup'])->find($item['variant_id']) : null;
+                
+                // Ürün ve varyant verilerinin anlık görüntüsünü al
+                $productSnapshot = [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'category' => $product->category?->name,
+                    'brand' => $product->brand?->name,
+                    'sale_price' => $product->sale_price,
+                    'discounted_price' => $product->discounted_price,
+                ];
+
+                $variantSnapshot = null;
+                if ($variant) {
+                    $variantSnapshot = [
+                        'id' => $variant->id,
+                        'name' => $variant->name,
+                        'sku' => $variant->sku,
+                        'barcode' => $variant->barcode,
+                        'sale_price' => $variant->sale_price,
+                        'discounted_price' => $variant->discounted_price,
+                        'attributes' => $variant->attributeValues->map(function ($av) {
+                            return [
+                                'group' => $av->attributeGroup->name,
+                                'value' => $av->value
+                            ];
+                        })->toArray()
+                    ];
+                }
+
+                SaleItem::create([
+                    'sale_id' => $sale->id,
+                    'product_id' => $item['product_id'],
+                    'variant_id' => $item['variant_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'price' => $item['price'],
+                    'total' => $item['total'],
+                    'product_snapshot' => $productSnapshot ?? null,
+                    'variant_snapshot' => $variantSnapshot ?? null
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sepet güncellendi',
+                'sale' => $sale->load(['items.product', 'items.variant'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
+    }
 } 

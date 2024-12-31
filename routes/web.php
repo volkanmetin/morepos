@@ -207,6 +207,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
 
     // Sales Routes
     Route::resource('sales', SaleController::class)->only(['index', 'store', 'show']);
+    Route::post('sales/update-cart', [SaleController::class, 'updateCart'])->name('sales.update-cart');
 
     // Settings Routes
     Route::prefix('settings')->name('settings.')->group(function () {

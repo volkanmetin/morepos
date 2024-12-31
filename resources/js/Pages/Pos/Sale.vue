@@ -484,7 +484,7 @@ const fetchProducts = async () => {
 const debounceSearch = debounce(fetchProducts, 300)
 
 // Sepet işlemleri
-const addToCart = (product) => {
+const addToCart = async (product) => {
     if (product.variants?.length > 0) {
         selectedProduct.value = product
         showVariantModal.value = true
@@ -493,11 +493,11 @@ const addToCart = (product) => {
         if (getCartItemQuantity(product.id) >= product.stock) {
             return
         }
-        addItemToCart(product)
+        await addItemToCart(product)
     }
 }
 
-const addItemToCart = (product, variant = null) => {
+const addItemToCart = async (product, variant = null) => {
     const item = {
         id: variant?.id || product.id,
         name: product.name + (variant ? ` - ${formatVariantName(variant)}` : ''),
@@ -525,30 +525,60 @@ const addItemToCart = (product, variant = null) => {
     }
     
     showVariantModal.value = false
+    await updateCart()
 }
 
-const removeFromCart = (index) => {
+const removeFromCart = async (index) => {
     cartItems.value.splice(index, 1)
+    await updateCart()
 }
 
-const increaseQuantity = (index) => {
+const increaseQuantity = async (index) => {
     const item = cartItems.value[index]
     if (item.quantity < item.max_stock) {
         item.quantity++
         updateItemTotal(index)
+        await updateCart()
     }
 }
 
-const decreaseQuantity = (index) => {
+const decreaseQuantity = async (index) => {
     if (cartItems.value[index].quantity > 1) {
         cartItems.value[index].quantity--
         updateItemTotal(index)
+        await updateCart()
     }
 }
 
 const updateItemTotal = (index) => {
     const item = cartItems.value[index]
     item.total = parseFloat(item.price) * item.quantity
+}
+
+// Sepeti güncelle
+const updateCart = async () => {
+    try {
+        const cartData = {
+            uuid: props.sale.uuid,
+            items: cartItems.value.map(item => ({
+                product_id: item.product_id,
+                variant_id: item.variant_id,
+                quantity: item.quantity,
+                price: item.price,
+                total: item.total
+            })),
+            coupon_id: appliedCoupon.value?.id,
+            manual_discount: manualDiscount.value,
+            subtotal: subtotal.value,
+            discount_amount: couponDiscountAmount.value + manualDiscountAmount.value,
+            tax_amount: taxAmount.value,
+            total: total.value
+        }
+        
+        await axios.post(route('sales.update-cart'), cartData)
+    } catch (error) {
+        console.error('Sepet güncellenirken hata oluştu:', error)
+    }
 }
 
 // Hesaplamalar
@@ -626,6 +656,7 @@ const applyCoupon = async () => {
             appliedCoupon.value = response.data.coupon;
             couponError.value = '';
             couponCode.value = '';
+            await updateCart();
         } else {
             // Başarısız yanıt durumunda
             couponError.value = response.data.message;
@@ -639,13 +670,14 @@ const applyCoupon = async () => {
 }
 
 // Manuel indirim uygulama
-const applyDiscount = () => {
+const applyDiscount = async () => {
     if (discountAmount.value > 0) {
         manualDiscount.value = {
             type: discountType.value,
             amount: discountAmount.value
         }
         discountAmount.value = null
+        await updateCart()
     }
 }
 
@@ -706,18 +738,47 @@ const getCartItemQuantity = (productId, variantId = null) => {
 }
 
 // Kupon silme
-const removeCoupon = () => {
+const removeCoupon = async () => {
     appliedCoupon.value = null;
     couponError.value = '';
+    await updateCart();
 }
 
 // Manuel indirim silme
-const removeManualDiscount = () => {
+const removeManualDiscount = async () => {
     manualDiscount.value = null;
+    await updateCart();
 }
 
-// Sayfa yüklendiğinde ürünleri getir
-onMounted(fetchProducts)
+// Sayfa yüklendiğinde
+onMounted(async () => {
+    // Mevcut satış detaylarını yükle
+    if (props.sale.items?.length > 0) {
+        cartItems.value = props.sale.items.map(item => ({
+            id: item.variant_id || item.product_id,
+            name: item.product.name + (item.variant ? ` - ${formatVariantName(item.variant)}` : ''),
+            price: item.price,
+            quantity: item.quantity,
+            product_id: item.product_id,
+            variant_id: item.variant_id,
+            max_stock: item.variant ? getTotalStock(item.variant) : item.product.stock,
+            total: item.total
+        }))
+    }
+
+    // Kupon bilgisini yükle
+    if (props.sale.coupon_id) {
+        appliedCoupon.value = props.sale.coupon
+    }
+
+    // Manuel indirim bilgisini yükle
+    if (props.sale.manual_discount) {
+        manualDiscount.value = props.sale.manual_discount
+    }
+
+    // Ürünleri getir
+    await fetchProducts()
+})
 </script>
 
 <style scoped>
