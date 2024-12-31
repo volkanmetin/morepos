@@ -15,23 +15,23 @@
                                         @input="debounceSearch"
                                     />
                                 </BCol>
-                                <BCol cols="8">
-                                    <div class="d-flex gap-2">
-                                        <Select2
-                                            v-model="selectedCategory"
-                                            :options="formattedCategoryOptions"
-                                            @change="handleCategoryChange"
-                                            :settings="{ width: '200px' }"
-                                            placeholder="Kategori"
-                                        />
-                                        <Select2
-                                            v-model="selectedBrand"
-                                            :options="formattedBrandOptions"
-                                            @change="handleBrandChange"
-                                            :settings="{ width: '200px' }"
-                                            placeholder="Marka"
-                                        />
-                                    </div>
+                                <BCol cols="4">
+                                    <Select2
+                                        v-model="selectedCategory"
+                                        :options="formattedCategoryOptions"
+                                        @select="handleCategoryChange"
+                                        :settings="{ width: '100%' }"
+                                        placeholder="Kategori"
+                                    />
+                                </BCol>
+                                <BCol cols="4">
+                                    <Select2
+                                        v-model="selectedBrand"
+                                        :options="formattedBrandOptions"
+                                        @select="handleBrandChange"
+                                        :settings="{ width: '100%' }"
+                                        placeholder="Marka"
+                                    />
                                 </BCol>
                             </BRow>
                         </div>
@@ -439,14 +439,10 @@ const fetchProducts = async () => {
                 brand: selectedBrand.value
             }
         })
-        products.value = response.data.data.map(product => ({
-            ...product,
-            //sale_price: product.variants?.[0]?.sale_price || 0,
-            //discounted_price: product.variants?.[0]?.discounted_price || 0,
-        }))
+        products.value = response.data.data
         
-        // Kategori ve marka seçeneklerini güncelle
-        if (response.data.categories) {
+        // Kategori ve marka seçeneklerini sadece ilk yüklemede güncelle
+        if (!formattedCategoryOptions.value.length || formattedCategoryOptions.value.length === 1) {
             formattedCategoryOptions.value = [
                 { id: '', text: 'Tüm Kategoriler' },
                 ...response.data.categories.map(c => ({
@@ -456,7 +452,7 @@ const fetchProducts = async () => {
             ]
         }
         
-        if (response.data.brands) {
+        if (!formattedBrandOptions.value.length || formattedBrandOptions.value.length === 1) {
             formattedBrandOptions.value = [
                 { id: '', text: 'Tüm Markalar' },
                 ...response.data.brands.map(b => ({
@@ -586,13 +582,13 @@ const openImageModal = (product) => {
 }
 
 // Kategori ve marka değişikliği
-const handleCategoryChange = (value) => {
-    selectedCategory.value = value
+const handleCategoryChange = (e) => {
+    selectedCategory.value = e.id
     fetchProducts()
 }
 
-const handleBrandChange = (value) => {
-    selectedBrand.value = value
+const handleBrandChange = (e) => {
+    selectedBrand.value = e.id
     fetchProducts()
 }
 
@@ -766,5 +762,21 @@ onMounted(fetchProducts)
     border-color: var(--bs-primary);
     background-color: #56499f;
     color: white;
+}
+
+.search-form {
+    .form-control,
+    .select2-container .select2-selection {
+        height: 38px !important;
+    }
+
+    .select2-container .select2-selection {
+        display: flex;
+        align-items: center;
+    }
+
+    .select2-container .select2-selection__arrow {
+        top: 5px !important;
+    }
 }
 </style> 
