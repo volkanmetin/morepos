@@ -14,8 +14,12 @@ class SettingService
     /**
      * Ayarı getir
      */
-    public function get(string $key, mixed $default = null): mixed
+    public function get(string|SettingKey $key, mixed $default = null): mixed
     {
+        if ($key instanceof SettingKey) {
+            $key = $key->value;
+        }
+
         $cacheKey = $this->getCacheKey($key);
         
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($key, $default) {
@@ -42,8 +46,12 @@ class SettingService
     /**
      * Ayarı güncelle
      */
-    public function set(string $key, mixed $value): void
+    public function set(string|SettingKey $key, mixed $value): void
     {
+        if ($key instanceof SettingKey) {
+            $key = $key->value;
+        }
+
         Setting::updateOrCreate(
             ['key' => $key],
             ['value' => $value]
