@@ -19,18 +19,26 @@
                                     <Select2
                                         v-model="selectedCategory"
                                         :options="formattedCategoryOptions"
-                                        @select="handleCategoryChange"
-                                        :settings="{ width: '100%' }"
-                                        placeholder="Kategori"
+                                        @change="handleCategoryChange"
+                                        :settings="{
+                                            width: '100%',
+                                            allowClear: true,
+                                            placeholder: 'Kategori'
+                                        }"
+                                        @clear="clearCategory"
                                     />
                                 </BCol>
                                 <BCol cols="4">
                                     <Select2
                                         v-model="selectedBrand"
                                         :options="formattedBrandOptions"
-                                        @select="handleBrandChange"
-                                        :settings="{ width: '100%' }"
-                                        placeholder="Marka"
+                                        @change="handleBrandChange"
+                                        :settings="{
+                                            width: '100%',
+                                            allowClear: true,
+                                            placeholder: 'Marka'
+                                        }"
+                                        @clear="clearBrand"
                                     />
                                 </BCol>
                             </BRow>
@@ -582,13 +590,24 @@ const openImageModal = (product) => {
 }
 
 // Kategori ve marka değişikliği
-const handleCategoryChange = (e) => {
-    selectedCategory.value = e.id
+const handleCategoryChange = (value) => {
+    selectedCategory.value = value
     fetchProducts()
 }
 
-const handleBrandChange = (e) => {
-    selectedBrand.value = e.id
+const handleBrandChange = (value) => {
+    selectedBrand.value = value
+    fetchProducts()
+}
+
+// Kategori ve marka temizleme
+const clearCategory = () => {
+    selectedCategory.value = ''
+    fetchProducts()
+}
+
+const clearBrand = () => {
+    selectedBrand.value = ''
     fetchProducts()
 }
 
@@ -777,6 +796,17 @@ onMounted(fetchProducts)
 
     .select2-container .select2-selection__arrow {
         top: 5px !important;
+    }
+
+    .select2-container .select2-selection__clear {
+        margin-right: 10px;
+        font-size: 18px;
+        color: #999;
+        cursor: pointer;
+
+        &:hover {
+            color: #dc3545;
+        }
     }
 }
 </style> 

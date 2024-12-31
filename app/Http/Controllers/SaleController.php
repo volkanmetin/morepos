@@ -48,14 +48,16 @@ class SaleController extends Controller
             'total' => 'required|numeric|min:0',
         ]);
 
+        ray($validated);
+
         try {
             DB::beginTransaction();
 
             $sale = Sale::create([
                 'customer_id' => $validated['customer_id'],
                 'payment_method' => $validated['payment_method'],
-                'coupon_id' => $validated['coupon_id'],
-                'manual_discount' => $validated['manual_discount'],
+                'coupon_id' => $validated['coupon_id'] ?? null,
+                'manual_discount' => $validated['manual_discount'] ?? null,
                 'subtotal' => $validated['subtotal'],
                 'discount_amount' => $validated['discount_amount'],
                 'tax_amount' => $validated['tax_amount'],
