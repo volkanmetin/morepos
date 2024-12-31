@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\HasTenant;
 use Illuminate\Support\Str;
+use App\Enums\SaleStatus;
 
 class Sale extends Model
 {
@@ -39,7 +40,8 @@ class Sale extends Model
         'discount_amount' => 'decimal:2',
         'total' => 'decimal:2',
         'manual_discount' => 'json',
-        'uuid' => 'string'
+        'uuid' => 'string',
+        'status' => SaleStatus::class
     ];
 
     protected static function boot()

@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Sale;
 use App\Services\CouponService;
 use App\Services\SettingService;
 use App\Enums\SettingKey;
 use App\Enums\PaymentMethod;
+use App\Enums\SaleStatus;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -85,12 +88,93 @@ class PosController extends Controller
         return response()->json($result);
     }
 
-    public function sale(Customer $customer)
+    public function selectCustomer(Customer $customer)
     {
+        // Son 1 saatteki bekleyen satışı kontrol et
+        $pendingSale = Sale::where('customer_id', $customer->id)
+            ->where('status', SaleStatus::PENDING)
+            ->where('created_at', '>=', Carbon::now()->subHour())
+            ->latest()
+            ->first();
+
+        if ($pendingSale) {
+            return redirect()->route('pos.sale', ['uuid' => $pendingSale->uuid]);
+        }
+
+        // Yeni bekleyen satış oluştur
+        $sale = Sale::create([
+            'user_id' => auth()->id(),
+            'customer_id' => $customer->id,
+            'payment_method' => PaymentMethod::CASH,
+            'status' => SaleStatus::PENDING,
+            'subtotal' => 0,
+            'tax_rate' => $this->settingService->get(SettingKey::TAX_RATE->value, 18),
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+            'total' => 0
+        ]);
+
+        return redirect()->route('pos.sale', ['uuid' => $sale->uuid]);
+    }
+
+    public function sale(string $uuid)
+    {
+        $sale = Sale::where('uuid', $uuid)
+            ->where('status', SaleStatus::PENDING)
+            ->firstOrFail();
+
         return Inertia::render('Pos/Sale', [
-            'customer' => $customer,
-            'taxRate' => $this->settingService->get(SettingKey::TAX_RATE, 18),
+            'sale' => $sale,
+            'customer' => $sale->customer,
+            'taxRate' => $sale->tax_rate,
             'paymentMethods' => PaymentMethod::options()
+        ]);
+    }
+
+    public function completeSale(string $uuid, Request $request)
+    {
+        $sale = Sale::where('uuid', $uuid)
+            ->where('status', SaleStatus::PENDING)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'payment_method' => 'required|string',
+            'subtotal' => 'required|numeric|min:0',
+            'tax_rate' => 'required|numeric|min:0',
+            'tax_amount' => 'required|numeric|min:0',
+            'discount_amount' => 'required|numeric|min:0',
+            'total' => 'required|numeric|min:0',
+            'items' => 'required|array',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|numeric|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.total' => 'required|numeric|min:0',
+        ]);
+
+        $sale->update([
+            'payment_method' => $validated['payment_method'],
+            'subtotal' => $validated['subtotal'],
+            'tax_rate' => $validated['tax_rate'],
+            'tax_amount' => $validated['tax_amount'],
+            'discount_amount' => $validated['discount_amount'],
+            'total' => $validated['total'],
+            'status' => SaleStatus::COMPLETED
+        ]);
+
+        // Satış detaylarını kaydet
+        foreach ($validated['items'] as $item) {
+            $sale->items()->create([
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+                'total' => $item['total']
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Satış başarıyla tamamlandı',
+            'sale' => $sale->load('items')
         ]);
     }
 }

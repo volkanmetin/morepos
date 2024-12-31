@@ -120,7 +120,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'tenant'])-
         Route::get('/', [PosController::class, 'index'])->name('index');
         Route::get('/search-customers', [PosController::class, 'searchCustomers'])->name('search-customers');
         Route::post('/customers', [PosController::class, 'createCustomer'])->name('create-customer');
-        Route::get('/sale/{customerId}', [PosController::class, 'pos'])->name('sale');
+        Route::get('/customer/{customer}', [PosController::class, 'selectCustomer'])->name('select-customer');
+        Route::get('/sale/{uuid}', [PosController::class, 'sale'])->name('sale');
         Route::post('/check-coupon', [PosController::class, 'checkCoupon'])->name('check-coupon');
     });
 

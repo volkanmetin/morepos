@@ -199,7 +199,7 @@ const createCustomer = async () => {
 }
 
 const selectCustomer = (customer) => {
-    router.visit(route('pos.sale', { customerId: customer.id }))
+    router.visit(route('pos.select-customer', { customer: customer.id }))
 }
 </script>
 
