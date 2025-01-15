@@ -239,6 +239,10 @@ class SaleController extends Controller
         try {
             DB::beginTransaction();
 
+            $taxRate = $this->settingService->get(SettingKey::TAX_RATE, 0);
+            $taxAmount = ($validated['subtotal'] - $validated['discount_amount']) * ($taxRate / 100);
+            $total = $validated['subtotal'] + $taxAmount - $validated['discount_amount'];
+
             $sale = Sale::where('uuid', $validated['uuid'])
                 ->where('status', SaleStatus::PENDING)
                 ->firstOrFail();
@@ -249,9 +253,10 @@ class SaleController extends Controller
                 'coupon_id' => $validated['coupon_id'] ?? null,
                 'manual_discount' => $validated['manual_discount'] ?? null,
                 'subtotal' => $validated['subtotal'],
-                'tax_amount' => $validated['tax_amount'],
+                'tax_rate' => $taxRate,
+                'tax_amount' => $taxAmount,
                 'discount_amount' => $validated['discount_amount'],
-                'total' => $validated['total']
+                'total' => $total
             ]);
 
             // Önceki satış detaylarını sil
